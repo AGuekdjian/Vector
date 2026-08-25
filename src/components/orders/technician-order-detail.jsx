@@ -1,6 +1,9 @@
 "use client";
 import { useQuery, useQueryClient } from "@tanstack/react-query";
+import { zodResolver } from "@hookform/resolvers/zod";
 import { useState } from "react";
+import { useForm, useWatch } from "react-hook-form";
+import { z } from "zod";
 import { enqueueOperation, getOperation } from "@/offline/outbox";
 import { syncOutbox } from "@/offline/sync-manager";
 import {
@@ -10,6 +13,26 @@ import {
 } from "@/offline/indexed-db";
 import { SystemEditor } from "@/components/orders/system-editor";
 import { AddSystemForm } from "@/components/orders/add-system-form";
+const completionFormSchema = z
+  .object({
+    result: z.enum(["COMPLETED", "REQUIRES_QUOTE", "NOT_COMPLETED"]),
+    observation: z.string().trim().max(4000),
+    notCompletedReasonId: z.string().optional(),
+  })
+  .superRefine((data, context) => {
+    if (data.result !== "NOT_COMPLETED" && data.observation.length < 3)
+      context.addIssue({
+        code: "custom",
+        path: ["observation"],
+        message: "La observación debe tener al menos 3 caracteres.",
+      });
+    if (data.result === "NOT_COMPLETED" && !data.notCompletedReasonId)
+      context.addIssue({
+        code: "custom",
+        path: ["notCompletedReasonId"],
+        message: "Selecciona un motivo.",
+      });
+  });
 async function fetchOrder(id) {
   try {
     const response = await fetch(`/api/orders/${id}`);
@@ -31,10 +54,19 @@ export function TechnicianOrderDetail({ id }) {
     error,
   } = useQuery({ queryKey: ["orders", id], queryFn: () => fetchOrder(id) });
   const [message, setMessage] = useState("");
-  const [mode, setMode] = useState(null);
-  const [observation, setObservation] = useState("");
-  const [reasonId, setReasonId] = useState("");
   const [isMutating, setIsMutating] = useState(false);
+  const completionForm = useForm({
+    resolver: zodResolver(completionFormSchema),
+    defaultValues: {
+      result: undefined,
+      observation: "",
+      notCompletedReasonId: "",
+    },
+  });
+  const mode = useWatch({
+    control: completionForm.control,
+    name: "result",
+  });
   const { data: reasons = [] } = useQuery({
     queryKey: ["not-completed-reasons"],
     queryFn: async () => {
@@ -188,7 +220,22 @@ export function TechnicianOrderDetail({ id }) {
         </button>
       )}
       {order.status === "IN_PROGRESS" && (
-        <section className="space-y-3">
+        <form
+          className="space-y-3"
+          onSubmit={completionForm.handleSubmit((data) =>
+            mutate("COMPLETE_ORDER", {
+              result: data.result,
+              observation: data.observation,
+              ...(data.result === "REQUIRES_QUOTE"
+                ? { quoteDetails: data.observation }
+                : {}),
+              ...(data.result === "NOT_COMPLETED"
+                ? { notCompletedReasonId: data.notCompletedReasonId }
+                : {}),
+            }),
+          )}
+          noValidate
+        >
           <div className="grid grid-cols-3 gap-2">
             {[
               ["COMPLETED", "Realizada"],
@@ -197,7 +244,8 @@ export function TechnicianOrderDetail({ id }) {
             ].map(([value, label]) => (
               <button
                 key={value}
-                onClick={() => setMode(value)}
+                type="button"
+                onClick={() => completionForm.setValue("result", value)}
                 className="min-h-14 rounded-lg border bg-white text-sm font-bold"
               >
                 {label}
@@ -209,8 +257,7 @@ export function TechnicianOrderDetail({ id }) {
               aria-label="Motivo"
               required
               className="min-h-12 w-full rounded-lg border px-3"
-              value={reasonId}
-              onChange={(event) => setReasonId(event.target.value)}
+              {...completionForm.register("notCompletedReasonId")}
             >
               <option value="">Seleccionar motivo</option>
               {reasons.map((reason) => (
@@ -228,30 +275,18 @@ export function TechnicianOrderDetail({ id }) {
               <textarea
                 id="observation"
                 className="min-h-28 w-full rounded-lg border p-3"
-                value={observation}
-                onChange={(e) => setObservation(e.target.value)}
+                {...completionForm.register("observation")}
               />
               <button
-                disabled={isMutating || (mode === "NOT_COMPLETED" && !reasonId)}
+                type="submit"
+                disabled={isMutating}
                 className="min-h-12 w-full rounded-lg bg-emerald-700 font-bold text-white"
-                onClick={() =>
-                  mutate("COMPLETE_ORDER", {
-                    result: mode,
-                    observation,
-                    ...(mode === "REQUIRES_QUOTE"
-                      ? { quoteDetails: observation }
-                      : {}),
-                    ...(mode === "NOT_COMPLETED"
-                      ? { notCompletedReasonId: reasonId }
-                      : {}),
-                  })
-                }
               >
                 Confirmar resultado
               </button>
             </>
           )}
-        </section>
+        </form>
       )}
       {message && (
         <p role="status" className="rounded-lg bg-blue-50 p-3 text-sm">

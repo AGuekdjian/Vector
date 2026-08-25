@@ -1,6 +1,8 @@
 "use client";
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
-import { useState } from "react";
+import { zodResolver } from "@hookform/resolvers/zod";
+import { useForm } from "react-hook-form";
+import { orderUpdateSchema } from "@/modules/service-orders/order.schemas";
 
 const get = async (url) => {
   const response = await fetch(url);
@@ -12,18 +14,21 @@ const get = async (url) => {
 
 function OrderEditor({ order }) {
   const queryClient = useQueryClient();
-  const [form, setForm] = useState({
-    responsibleTechnicianId:
-      order.responsibleTechnicianId?._id ||
-      order.responsibleTechnicianId ||
-      null,
-    companionEmployeeId: order.companionEmployeeId?._id || null,
-    vehicleId: order.vehicleId?._id || null,
-    scheduledDate: new Date(order.scheduledDate).toISOString().slice(0, 10),
-    scheduledTime: order.scheduledTime,
-    workDescription: order.workDescription,
-    technicianNote: order.technicianNote || "",
-    internalNote: order.internalNote || "",
+  const { register, handleSubmit } = useForm({
+    resolver: zodResolver(orderUpdateSchema),
+    defaultValues: {
+      responsibleTechnicianId:
+        order.responsibleTechnicianId?._id ||
+        order.responsibleTechnicianId ||
+        null,
+      companionEmployeeId: order.companionEmployeeId?._id || null,
+      vehicleId: order.vehicleId?._id || null,
+      scheduledDate: new Date(order.scheduledDate).toISOString().slice(0, 10),
+      scheduledTime: order.scheduledTime,
+      workDescription: order.workDescription,
+      technicianNote: order.technicianNote || "",
+      internalNote: order.internalNote || "",
+    },
   });
   const users = useQuery({
     queryKey: ["users"],
@@ -38,11 +43,11 @@ function OrderEditor({ order }) {
     queryFn: () => get("/api/vehicles"),
   });
   const update = useMutation({
-    mutationFn: async () => {
+    mutationFn: async (data) => {
       const response = await fetch(`/api/orders/${order._id}`, {
         method: "PATCH",
         headers: { "content-type": "application/json" },
-        body: JSON.stringify(form),
+        body: JSON.stringify(data),
       });
       const body = await response.json();
       if (!response.ok) throw new Error(body.error?.message);
@@ -51,26 +56,23 @@ function OrderEditor({ order }) {
     onSuccess: () =>
       queryClient.invalidateQueries({ queryKey: ["order-admin", order._id] }),
   });
-  const set = (field, value) =>
-    setForm((current) => ({ ...current, [field]: value || null }));
   const editable = ["PENDING", "ASSIGNED", "RESCHEDULED"].includes(
     order.status,
   );
   return (
     <form
       className="grid gap-3 rounded-xl border bg-white p-4 sm:grid-cols-2"
-      onSubmit={(event) => {
-        event.preventDefault();
-        update.mutate();
-      }}
+      onSubmit={handleSubmit((data) => update.mutate(data))}
+      noValidate
     >
       <h2 className="font-bold sm:col-span-2">Asignación y planificación</h2>
       <select
         disabled={!editable}
         aria-label="Técnico responsable"
         className="min-h-11 rounded-lg border px-3"
-        value={form.responsibleTechnicianId || ""}
-        onChange={(event) => set("responsibleTechnicianId", event.target.value)}
+        {...register("responsibleTechnicianId", {
+          setValueAs: (value) => value || null,
+        })}
       >
         <option value="">Sin asignar</option>
         {users.data?.items
@@ -85,8 +87,9 @@ function OrderEditor({ order }) {
         disabled={!editable}
         aria-label="Compañero"
         className="min-h-11 rounded-lg border px-3"
-        value={form.companionEmployeeId || ""}
-        onChange={(event) => set("companionEmployeeId", event.target.value)}
+        {...register("companionEmployeeId", {
+          setValueAs: (value) => value || null,
+        })}
       >
         <option value="">Solo</option>
         {employees.data?.items.map((employee) => (
@@ -99,8 +102,7 @@ function OrderEditor({ order }) {
         disabled={!editable}
         aria-label="Vehículo"
         className="min-h-11 rounded-lg border px-3"
-        value={form.vehicleId || ""}
-        onChange={(event) => set("vehicleId", event.target.value)}
+        {...register("vehicleId", { setValueAs: (value) => value || null })}
       >
         <option value="">Sin vehículo</option>
         {vehicles.data?.items.map((vehicle) => (
@@ -115,16 +117,14 @@ function OrderEditor({ order }) {
           aria-label="Fecha programada"
           type="date"
           className="min-h-11 rounded-lg border px-2"
-          value={form.scheduledDate}
-          onChange={(event) => set("scheduledDate", event.target.value)}
+          {...register("scheduledDate")}
         />
         <input
           disabled={!editable}
           aria-label="Hora programada"
           type="time"
           className="min-h-11 rounded-lg border px-2"
-          value={form.scheduledTime}
-          onChange={(event) => set("scheduledTime", event.target.value)}
+          {...register("scheduledTime")}
         />
       </div>
       <label className="sm:col-span-2">
@@ -132,8 +132,7 @@ function OrderEditor({ order }) {
         <textarea
           disabled={!editable}
           className="mt-1 min-h-24 w-full rounded-lg border p-3"
-          value={form.workDescription}
-          onChange={(event) => set("workDescription", event.target.value)}
+          {...register("workDescription")}
         />
       </label>
       <label>
@@ -141,8 +140,7 @@ function OrderEditor({ order }) {
         <textarea
           disabled={!editable}
           className="mt-1 min-h-20 w-full rounded-lg border p-3"
-          value={form.technicianNote}
-          onChange={(event) => set("technicianNote", event.target.value)}
+          {...register("technicianNote")}
         />
       </label>
       <label>
@@ -150,8 +148,7 @@ function OrderEditor({ order }) {
         <textarea
           disabled={!editable}
           className="mt-1 min-h-20 w-full rounded-lg border p-3"
-          value={form.internalNote}
-          onChange={(event) => set("internalNote", event.target.value)}
+          {...register("internalNote")}
         />
       </label>
       {update.error && (

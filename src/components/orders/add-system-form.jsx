@@ -1,23 +1,41 @@
 "use client";
+import { zodResolver } from "@hookform/resolvers/zod";
 import { useState } from "react";
+import { useForm } from "react-hook-form";
+import { z } from "zod";
 import { enqueueOperation, getOperation } from "@/offline/outbox";
 import { syncOutbox } from "@/offline/sync-manager";
 import { patchCachedOrder } from "@/offline/indexed-db";
+const systemFormSchema = z.object({
+  type: z.enum(["ALARM", "CCTV", "ACCESS_CONTROL", "OTHER"]),
+  brand: z.string().trim().max(100),
+  model: z.string().trim().max(100),
+  description: z.string().trim().max(2000),
+  imei: z.string().trim().max(100),
+  serialNumber: z.string().trim().max(200),
+  technicalNotes: z.string().trim().max(4000),
+  installedAt: z
+    .string()
+    .regex(/^\d{4}-\d{2}-\d{2}$/)
+    .or(z.literal("")),
+});
 export function AddSystemForm({ order, onSaved }) {
-  const [form, setForm] = useState({
-    type: "ALARM",
-    brand: "",
-    model: "",
-    description: "",
-    imei: "",
-    serialNumber: "",
-    technicalNotes: "",
-    installedAt: "",
+  const { register, handleSubmit, reset } = useForm({
+    resolver: zodResolver(systemFormSchema),
+    defaultValues: {
+      type: "ALARM",
+      brand: "",
+      model: "",
+      description: "",
+      imei: "",
+      serialNumber: "",
+      technicalNotes: "",
+      installedAt: "",
+    },
   });
   const [message, setMessage] = useState("");
   const [saving, setSaving] = useState(false);
-  const save = async (event) => {
-    event.preventDefault();
+  const save = async (form) => {
     if (saving) return;
     setSaving(true);
     try {
@@ -44,6 +62,7 @@ export function AddSystemForm({ order, onSaved }) {
         ],
       }));
       onSaved?.();
+      reset();
       setMessage("Guardado en el dispositivo. Pendiente de sincronización.");
       if (navigator.onLine) {
         await syncOutbox();
@@ -66,12 +85,15 @@ export function AddSystemForm({ order, onSaved }) {
       <summary className="cursor-pointer font-semibold">
         Agregar sistema instalado
       </summary>
-      <form className="mt-3 grid gap-2" onSubmit={save}>
+      <form
+        className="mt-3 grid gap-2"
+        onSubmit={handleSubmit(save)}
+        noValidate
+      >
         <select
           aria-label="Tipo nuevo sistema"
           className="min-h-10 rounded border px-2"
-          value={form.type}
-          onChange={(e) => setForm({ ...form, type: e.target.value })}
+          {...register("type")}
         >
           {["ALARM", "CCTV", "ACCESS_CONTROL", "OTHER"].map((x) => (
             <option key={x}>{x}</option>
@@ -92,8 +114,7 @@ export function AddSystemForm({ order, onSaved }) {
               aria-label={`Nuevo ${field}`}
               placeholder={field}
               className="min-h-20 rounded border p-2"
-              value={form[field]}
-              onChange={(e) => setForm({ ...form, [field]: e.target.value })}
+              {...register(field)}
             />
           ) : (
             <input
@@ -102,8 +123,7 @@ export function AddSystemForm({ order, onSaved }) {
               aria-label={`Nuevo ${field}`}
               placeholder={field}
               className="min-h-10 rounded border px-2"
-              value={form[field]}
-              onChange={(e) => setForm({ ...form, [field]: e.target.value })}
+              {...register(field)}
             />
           ),
         )}

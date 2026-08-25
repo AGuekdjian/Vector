@@ -1,6 +1,15 @@
 "use client";
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
-import { useState } from "react";
+import { zodResolver } from "@hookform/resolvers/zod";
+import { useForm, useWatch } from "react-hook-form";
+import { z } from "zod";
+import { createUserSchema } from "@/modules/auth/auth.schemas";
+const employeeSchema = z.object({
+  firstName: z.string().trim().min(1).max(80),
+  lastName: z.string().trim().min(1).max(80),
+});
+const vehicleSchema = z.object({ plate: z.string().trim().min(1).max(20) });
+const reasonSchema = z.object({ label: z.string().trim().min(3).max(200) });
 const get = async (url) => (await fetch(url)).json();
 const post = async (url, data) => {
   const r = await fetch(url, {
@@ -24,14 +33,23 @@ const patch = async (url, data) => {
 };
 export function AdministrationManager() {
   const qc = useQueryClient();
-  const [employee, setEmployee] = useState({ firstName: "", lastName: "" });
-  const [plate, setPlate] = useState("");
-  const [reason, setReason] = useState("");
-  const [user, setUser] = useState({
-    employeeId: "",
-    role: "TECHNICIAN",
-    password: "",
+  const employeeForm = useForm({
+    resolver: zodResolver(employeeSchema),
+    defaultValues: { firstName: "", lastName: "" },
   });
+  const vehicleForm = useForm({
+    resolver: zodResolver(vehicleSchema),
+    defaultValues: { plate: "" },
+  });
+  const reasonForm = useForm({
+    resolver: zodResolver(reasonSchema),
+    defaultValues: { label: "" },
+  });
+  const userForm = useForm({
+    resolver: zodResolver(createUserSchema),
+    defaultValues: { employeeId: "", role: "TECHNICIAN", password: "" },
+  });
+  const userRole = useWatch({ control: userForm.control, name: "role" });
   const employees = useQuery({
     queryKey: ["employees"],
     queryFn: () => get("/api/employees?limit=100"),
@@ -53,28 +71,28 @@ export function AdministrationManager() {
     mutationFn: (data) => post("/api/employees", data),
     onSuccess: () => {
       qc.invalidateQueries({ queryKey: ["employees"] });
-      setEmployee({ firstName: "", lastName: "" });
+      employeeForm.reset();
     },
   });
   const addVehicle = useMutation({
     mutationFn: (data) => post("/api/vehicles", data),
     onSuccess: () => {
       qc.invalidateQueries({ queryKey: ["vehicles"] });
-      setPlate("");
+      vehicleForm.reset();
     },
   });
   const addUser = useMutation({
     mutationFn: (data) => post("/api/users", data),
     onSuccess: () => {
       qc.invalidateQueries({ queryKey: ["users"] });
-      setUser((current) => ({ ...current, password: "" }));
+      userForm.resetField("password");
     },
   });
   const addReason = useMutation({
     mutationFn: (data) => post("/api/not-completed-reasons", data),
     onSuccess: () => {
       qc.invalidateQueries({ queryKey: ["reasons"] });
-      setReason("");
+      reasonForm.reset();
     },
   });
   const toggle = async (resource, item, key) => {
@@ -93,30 +111,24 @@ export function AdministrationManager() {
         <h2 className="font-bold">Empleados</h2>
         <form
           className="mt-3 space-y-2"
-          onSubmit={(e) => {
-            e.preventDefault();
-            addEmployee.mutate(employee);
-          }}
+          onSubmit={employeeForm.handleSubmit((data) =>
+            addEmployee.mutate(data),
+          )}
+          noValidate
         >
           <input
             required
             aria-label="Nombre"
             placeholder="Nombre"
             className="min-h-10 w-full rounded border px-2"
-            value={employee.firstName}
-            onChange={(e) =>
-              setEmployee({ ...employee, firstName: e.target.value })
-            }
+            {...employeeForm.register("firstName")}
           />
           <input
             required
             aria-label="Apellido"
             placeholder="Apellido"
             className="min-h-10 w-full rounded border px-2"
-            value={employee.lastName}
-            onChange={(e) =>
-              setEmployee({ ...employee, lastName: e.target.value })
-            }
+            {...employeeForm.register("lastName")}
           />
           <button className="min-h-10 w-full rounded bg-red-800 text-white">
             Agregar
@@ -145,17 +157,14 @@ export function AdministrationManager() {
         <h2 className="font-bold">Usuarios</h2>
         <form
           className="mt-3 space-y-2"
-          onSubmit={(e) => {
-            e.preventDefault();
-            addUser.mutate(user);
-          }}
+          onSubmit={userForm.handleSubmit((data) => addUser.mutate(data))}
+          noValidate
         >
           <select
             required
             aria-label="Empleado"
             className="min-h-10 w-full rounded border px-2"
-            value={user.employeeId}
-            onChange={(e) => setUser({ ...user, employeeId: e.target.value })}
+            {...userForm.register("employeeId")}
           >
             <option value="">Empleado</option>
             {employees.data?.items
@@ -169,28 +178,26 @@ export function AdministrationManager() {
           <select
             aria-label="Rol"
             className="min-h-10 w-full rounded border px-2"
-            value={user.role}
-            onChange={(e) => setUser({ ...user, role: e.target.value })}
+            {...userForm.register("role")}
           >
             <option>TECHNICIAN</option>
             <option>ADMIN</option>
           </select>
           <input
             required
-            minLength={user.role === "ADMIN" ? 10 : 4}
-            maxLength={user.role === "ADMIN" ? 128 : 4}
-            type={user.role === "ADMIN" ? "password" : "text"}
-            inputMode={user.role === "TECHNICIAN" ? "numeric" : undefined}
-            pattern={user.role === "TECHNICIAN" ? "[0-9]{4}" : undefined}
+            minLength={userRole === "ADMIN" ? 10 : 4}
+            maxLength={userRole === "ADMIN" ? 128 : 4}
+            type={userRole === "ADMIN" ? "password" : "text"}
+            inputMode={userRole === "TECHNICIAN" ? "numeric" : undefined}
+            pattern={userRole === "TECHNICIAN" ? "[0-9]{4}" : undefined}
             aria-label="Contraseña"
             placeholder={
-              user.role === "ADMIN"
+              userRole === "ADMIN"
                 ? "Contraseña segura (mínimo 10)"
                 : "PIN de 4 dígitos"
             }
             className="min-h-10 w-full rounded border px-2"
-            value={user.password}
-            onChange={(e) => setUser({ ...user, password: e.target.value })}
+            {...userForm.register("password")}
           />
           {addUser.error && (
             <p className="text-sm text-red-700">{addUser.error.message}</p>
@@ -237,18 +244,15 @@ export function AdministrationManager() {
         <h2 className="font-bold">Vehículos</h2>
         <form
           className="mt-3 flex gap-2"
-          onSubmit={(e) => {
-            e.preventDefault();
-            addVehicle.mutate({ plate });
-          }}
+          onSubmit={vehicleForm.handleSubmit((data) => addVehicle.mutate(data))}
+          noValidate
         >
           <input
             required
             aria-label="Matrícula"
             placeholder="Matrícula"
             className="min-h-10 min-w-0 flex-1 rounded border px-2"
-            value={plate}
-            onChange={(e) => setPlate(e.target.value)}
+            {...vehicleForm.register("plate")}
           />
           <button className="rounded bg-red-800 px-3 text-white">
             Agregar
@@ -277,18 +281,15 @@ export function AdministrationManager() {
         <h2 className="font-bold">Motivos de orden no realizada</h2>
         <form
           className="mt-3 flex gap-2"
-          onSubmit={(event) => {
-            event.preventDefault();
-            addReason.mutate({ label: reason });
-          }}
+          onSubmit={reasonForm.handleSubmit((data) => addReason.mutate(data))}
+          noValidate
         >
           <input
             required
             minLength={3}
             aria-label="Nuevo motivo"
             className="min-h-10 min-w-0 flex-1 rounded border px-2"
-            value={reason}
-            onChange={(event) => setReason(event.target.value)}
+            {...reasonForm.register("label")}
           />
           <button className="rounded bg-red-800 px-3 text-white">
             Agregar

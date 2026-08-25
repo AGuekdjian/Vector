@@ -1,9 +1,14 @@
 "use client";
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
+import { zodResolver } from "@hookform/resolvers/zod";
 import { useState } from "react";
+import { useForm } from "react-hook-form";
 import { CustomerAdminForm } from "@/components/admin/customer-admin-form";
 import { InstallationAdminCard } from "@/components/admin/installation-admin-card";
 import { SystemAdminCard } from "@/components/admin/system-admin-card";
+import { installationSchema } from "@/modules/installations/installation.schemas";
+import { systemSchema } from "@/modules/systems/system.schemas";
+const clientSystemSchema = systemSchema.omit({ installedAt: true });
 const get = async (url) => {
   const r = await fetch(url);
   if (!r.ok) throw new Error((await r.json()).error?.message);
@@ -11,21 +16,23 @@ const get = async (url) => {
 };
 export function CustomerDetail({ id }) {
   const qc = useQueryClient();
-  const [installation, setInstallation] = useState({
-    customerId: id,
-    name: "",
-    address: "",
-    department: "",
+  const installationForm = useForm({
+    resolver: zodResolver(installationSchema),
+    defaultValues: { customerId: id, name: "", address: "", department: "" },
   });
   const [selected, setSelected] = useState("");
-  const [system, setSystem] = useState({
-    installationId: "",
-    type: "ALARM",
-    brand: "",
-    model: "",
-    imei: "",
-    serialNumber: "",
-    technicalNotes: "",
+  const systemForm = useForm({
+    resolver: zodResolver(clientSystemSchema),
+    defaultValues: {
+      installationId: "",
+      type: "ALARM",
+      brand: "",
+      model: "",
+      description: "",
+      imei: "",
+      serialNumber: "",
+      technicalNotes: "",
+    },
   });
   const customer = useQuery({
     queryKey: ["customer", id],
@@ -58,7 +65,12 @@ export function CustomerDetail({ id }) {
     },
     onSuccess: () => {
       qc.invalidateQueries({ queryKey: ["installations", id] });
-      setInstallation({ ...installation, name: "", address: "" });
+      installationForm.reset({
+        customerId: id,
+        name: "",
+        address: "",
+        department: "",
+      });
     },
   });
   const createSystem = useMutation({
@@ -73,8 +85,8 @@ export function CustomerDetail({ id }) {
     },
     onSuccess: () => {
       qc.invalidateQueries({ queryKey: ["systems", selected] });
-      setSystem({
-        ...system,
+      systemForm.reset({
+        ...systemForm.getValues(),
         brand: "",
         model: "",
         imei: "",
@@ -101,10 +113,10 @@ export function CustomerDetail({ id }) {
       <section className="grid gap-5 lg:grid-cols-[340px_1fr]">
         <form
           className="space-y-3 rounded-xl border bg-white p-4"
-          onSubmit={(e) => {
-            e.preventDefault();
-            createInstallation.mutate(installation);
-          }}
+          onSubmit={installationForm.handleSubmit((data) =>
+            createInstallation.mutate(data),
+          )}
+          noValidate
         >
           <h2 className="font-bold">Nueva instalación</h2>
           {["name", "address", "department"].map((field) => (
@@ -120,10 +132,7 @@ export function CustomerDetail({ id }) {
                 }[field]
               }
               className="min-h-11 w-full rounded-lg border px-3"
-              value={installation[field]}
-              onChange={(e) =>
-                setInstallation({ ...installation, [field]: e.target.value })
-              }
+              {...installationForm.register(field)}
             />
           ))}
           <button className="min-h-11 w-full rounded-lg bg-red-800 font-semibold text-white">
@@ -140,7 +149,7 @@ export function CustomerDetail({ id }) {
                 selected={selected === x._id}
                 onSelect={() => {
                   setSelected(x._id);
-                  setSystem((old) => ({ ...old, installationId: x._id }));
+                  systemForm.setValue("installationId", x._id);
                 }}
                 onChanged={() =>
                   qc.invalidateQueries({ queryKey: ["installations", id] })
@@ -152,19 +161,16 @@ export function CustomerDetail({ id }) {
             <div className="mt-4 grid gap-4 lg:grid-cols-[300px_1fr]">
               <form
                 className="space-y-2 rounded-xl border bg-white p-4"
-                onSubmit={(e) => {
-                  e.preventDefault();
-                  createSystem.mutate(system);
-                }}
+                onSubmit={systemForm.handleSubmit((data) =>
+                  createSystem.mutate(data),
+                )}
+                noValidate
               >
                 <h3 className="font-bold">Agregar sistema</h3>
                 <select
                   aria-label="Tipo de sistema"
                   className="min-h-10 w-full rounded border px-2"
-                  value={system.type}
-                  onChange={(e) =>
-                    setSystem({ ...system, type: e.target.value })
-                  }
+                  {...systemForm.register("type")}
                 >
                   {["ALARM", "CCTV", "ACCESS_CONTROL", "OTHER"].map((x) => (
                     <option key={x}>{x}</option>
@@ -182,10 +188,7 @@ export function CustomerDetail({ id }) {
                     aria-label={field}
                     placeholder={field}
                     className="min-h-10 w-full rounded border px-2"
-                    value={system[field]}
-                    onChange={(e) =>
-                      setSystem({ ...system, [field]: e.target.value })
-                    }
+                    {...systemForm.register(field)}
                   />
                 ))}
                 <button className="min-h-10 w-full rounded bg-red-800 text-white">
