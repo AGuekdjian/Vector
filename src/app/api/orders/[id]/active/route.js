@@ -28,7 +28,7 @@ export const PATCH = withApiHandler(
           },
         },
       },
-      { new: true },
+      { returnDocument: "after" },
     );
     if (!item)
       throw new AppError("ORDER_NOT_FOUND", "Orden no encontrada.", 404);

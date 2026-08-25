@@ -40,7 +40,7 @@ export async function startOrder({ orderId, actor, requestId, operationId }) {
         },
       },
     },
-    { new: true },
+    { returnDocument: "after" },
   );
   if (!item)
     throw new AppError(
@@ -114,7 +114,7 @@ export async function completeOrder({
         },
       },
     },
-    { new: true },
+    { returnDocument: "after" },
   );
   if (!item)
     throw new AppError(

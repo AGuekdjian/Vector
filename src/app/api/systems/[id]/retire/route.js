@@ -44,7 +44,7 @@ export const POST = withApiHandler(
           removedByServiceOrderId: order._id,
         },
       },
-      { new: true },
+      { returnDocument: "after" },
     );
     if (!item)
       throw new AppError(
