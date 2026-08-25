@@ -23,6 +23,13 @@ export async function cacheOrders(orders) {
   const tx = db.transaction("orders", "readwrite");
   await Promise.all([...orders.map((order) => tx.store.put(order)), tx.done]);
 }
+export async function replaceCachedOrders(orders) {
+  const db = await getOfflineDb();
+  const tx = db.transaction("orders", "readwrite");
+  await tx.store.clear();
+  for (const order of orders) await tx.store.put(order);
+  await tx.done;
+}
 export async function getCachedOrders() {
   return (await getOfflineDb()).getAll("orders");
 }

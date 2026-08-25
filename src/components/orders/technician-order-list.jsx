@@ -3,33 +3,21 @@ import { useQuery } from "@tanstack/react-query";
 import Link from "next/link";
 import { useEffect } from "react";
 import {
-  cacheOrders,
   getCachedOrders,
   initializeOfflineIdentity,
+  replaceCachedOrders,
 } from "@/offline/indexed-db";
 async function loadOrders() {
   try {
     const today = new Date().toISOString().slice(0, 10);
-    const response = await fetch(
-      `/api/orders?limit=100&dateFrom=${today}&dateTo=${today}`,
-    );
+    const response = await fetch(`/api/orders/snapshot?date=${today}`);
     if (!response.ok) throw new Error();
     const body = await response.json();
     const meResponse = await fetch("/api/auth/me");
     if (meResponse.ok)
       await initializeOfflineIdentity((await meResponse.json()).user.id);
-    const details = await Promise.all(
-      body.items.map(async (item) => {
-        try {
-          const detailResponse = await fetch(`/api/orders/${item._id}`);
-          return detailResponse.ok ? (await detailResponse.json()).item : item;
-        } catch {
-          return item;
-        }
-      }),
-    );
-    await cacheOrders(details);
-    return details;
+    await replaceCachedOrders(body.items);
+    return body.items;
   } catch {
     return getCachedOrders();
   }
