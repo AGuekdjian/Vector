@@ -20,7 +20,7 @@ export const PATCH = withApiHandler(
     const item = await Installation.findByIdAndUpdate(
       id,
       { $set: { active } },
-      { new: true },
+      { returnDocument: "after" },
     );
     if (!item)
       throw new AppError(

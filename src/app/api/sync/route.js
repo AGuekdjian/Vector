@@ -98,7 +98,7 @@ export const POST = withApiHandler(async (request, _context, { requestId }) => {
       ],
     },
     { $set: { processingUntil: new Date(Date.now() + 30_000) } },
-    { new: true },
+    { returnDocument: "after" },
   );
   if (!stored)
     throw new AppError("SYNC_BUSY", "La operación ya se está procesando.", 503);

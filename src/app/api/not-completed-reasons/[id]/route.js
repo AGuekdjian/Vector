@@ -24,7 +24,7 @@ export const PATCH = withApiHandler(
     const item = await NotCompletedReason.findByIdAndUpdate(
       id,
       { $set: data },
-      { new: true, runValidators: true },
+      { returnDocument: "after", runValidators: true },
     );
     if (!item)
       throw new AppError("REASON_NOT_FOUND", "Motivo no encontrado.", 404);

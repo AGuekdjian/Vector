@@ -1,7 +1,10 @@
 "use client";
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
+import { zodResolver } from "@hookform/resolvers/zod";
 import { useState } from "react";
+import { useForm, useWatch } from "react-hook-form";
 import { useDebouncedValue } from "@/shared/hooks/use-debounced-value";
+import { orderCreateSchema } from "@/modules/service-orders/order.schemas";
 import Link from "next/link";
 const get = async (url) => {
   const r = await fetch(url);
@@ -17,19 +20,26 @@ export function OrderManager() {
   const [page, setPage] = useState(1);
   const [technicianId, setTechnicianId] = useState("");
   const [customerFilter, setCustomerFilter] = useState("");
-  const [form, setForm] = useState({
-    externalOrderNumber: "",
-    customerId: "",
-    installationId: "",
-    responsibleTechnicianId: null,
-    companionEmployeeId: null,
-    vehicleId: null,
-    scheduledDate: new Date().toISOString().slice(0, 10),
-    scheduledTime: "09:00",
-    workDescription: "",
-    technicianNote: "",
-    internalNote: "",
-    parentServiceOrderId: null,
+  const orderForm = useForm({
+    resolver: zodResolver(orderCreateSchema),
+    defaultValues: {
+      externalOrderNumber: "",
+      customerId: "",
+      installationId: "",
+      responsibleTechnicianId: null,
+      companionEmployeeId: null,
+      vehicleId: null,
+      scheduledDate: new Date().toISOString().slice(0, 10),
+      scheduledTime: "09:00",
+      workDescription: "",
+      technicianNote: "",
+      internalNote: "",
+      parentServiceOrderId: null,
+    },
+  });
+  const selectedCustomerId = useWatch({
+    control: orderForm.control,
+    name: "customerId",
   });
   const orders = useQuery({
     queryKey: [
@@ -63,9 +73,9 @@ export function OrderManager() {
     queryFn: () => get("/api/vehicles"),
   });
   const installations = useQuery({
-    queryKey: ["installations", form.customerId],
-    queryFn: () => get(`/api/installations?customerId=${form.customerId}`),
-    enabled: !!form.customerId,
+    queryKey: ["installations", selectedCustomerId],
+    queryFn: () => get(`/api/installations?customerId=${selectedCustomerId}`),
+    enabled: !!selectedCustomerId,
   });
   const create = useMutation({
     mutationFn: async (data) => {
@@ -80,23 +90,19 @@ export function OrderManager() {
     },
     onSuccess: () => {
       qc.invalidateQueries({ queryKey: ["orders-admin"] });
-      setForm((old) => ({
-        ...old,
+      orderForm.reset({
+        ...orderForm.getValues(),
         externalOrderNumber: "",
         workDescription: "",
-      }));
+      });
     },
   });
-  const set = (key, value) =>
-    setForm((old) => ({ ...old, [key]: value || null }));
   return (
     <div className="grid gap-6 xl:grid-cols-[420px_1fr]">
       <form
         className="space-y-3 rounded-xl border bg-white p-4"
-        onSubmit={(e) => {
-          e.preventDefault();
-          create.mutate(form);
-        }}
+        onSubmit={orderForm.handleSubmit((data) => create.mutate(data))}
+        noValidate
       >
         <h2 className="font-bold">Nueva orden</h2>
         <input
@@ -104,21 +110,15 @@ export function OrderManager() {
           aria-label="Número OS"
           placeholder="Número OS de Eximia"
           className="min-h-11 w-full rounded-lg border px-3"
-          value={form.externalOrderNumber}
-          onChange={(e) => set("externalOrderNumber", e.target.value)}
+          {...orderForm.register("externalOrderNumber")}
         />
         <select
           required
           aria-label="Cliente"
           className="min-h-11 w-full rounded-lg border px-3"
-          value={form.customerId || ""}
-          onChange={(e) =>
-            setForm((old) => ({
-              ...old,
-              customerId: e.target.value || null,
-              installationId: "",
-            }))
-          }
+          {...orderForm.register("customerId", {
+            onChange: () => orderForm.setValue("installationId", ""),
+          })}
         >
           <option value="">Cliente</option>
           {customers.data?.items.map((x) => (
@@ -131,8 +131,7 @@ export function OrderManager() {
           required
           aria-label="Instalación"
           className="min-h-11 w-full rounded-lg border px-3"
-          value={form.installationId || ""}
-          onChange={(e) => set("installationId", e.target.value)}
+          {...orderForm.register("installationId")}
         >
           <option value="">Instalación</option>
           {installations.data?.items.map((x) => (
@@ -147,23 +146,22 @@ export function OrderManager() {
             required
             aria-label="Fecha"
             className="min-h-11 rounded-lg border px-3"
-            value={form.scheduledDate}
-            onChange={(e) => set("scheduledDate", e.target.value)}
+            {...orderForm.register("scheduledDate")}
           />
           <input
             type="time"
             required
             aria-label="Hora"
             className="min-h-11 rounded-lg border px-3"
-            value={form.scheduledTime}
-            onChange={(e) => set("scheduledTime", e.target.value)}
+            {...orderForm.register("scheduledTime")}
           />
         </div>
         <select
           aria-label="Técnico"
           className="min-h-11 w-full rounded-lg border px-3"
-          value={form.responsibleTechnicianId || ""}
-          onChange={(e) => set("responsibleTechnicianId", e.target.value)}
+          {...orderForm.register("responsibleTechnicianId", {
+            setValueAs: (value) => value || null,
+          })}
         >
           <option value="">Sin asignar</option>
           {users.data?.items
@@ -177,8 +175,9 @@ export function OrderManager() {
         <select
           aria-label="Compañero"
           className="min-h-11 w-full rounded-lg border px-3"
-          value={form.companionEmployeeId || ""}
-          onChange={(e) => set("companionEmployeeId", e.target.value)}
+          {...orderForm.register("companionEmployeeId", {
+            setValueAs: (value) => value || null,
+          })}
         >
           <option value="">Solo</option>
           {employees.data?.items
@@ -192,8 +191,9 @@ export function OrderManager() {
         <select
           aria-label="Vehículo"
           className="min-h-11 w-full rounded-lg border px-3"
-          value={form.vehicleId || ""}
-          onChange={(e) => set("vehicleId", e.target.value)}
+          {...orderForm.register("vehicleId", {
+            setValueAs: (value) => value || null,
+          })}
         >
           <option value="">Sin vehículo</option>
           {vehicles.data?.items
@@ -209,14 +209,14 @@ export function OrderManager() {
           aria-label="Trabajo"
           placeholder="Trabajo a realizar"
           className="min-h-24 w-full rounded-lg border p-3"
-          value={form.workDescription}
-          onChange={(e) => set("workDescription", e.target.value)}
+          {...orderForm.register("workDescription")}
         />
         <select
           aria-label="Orden original"
           className="min-h-11 w-full rounded-lg border px-3"
-          value={form.parentServiceOrderId || ""}
-          onChange={(event) => set("parentServiceOrderId", event.target.value)}
+          {...orderForm.register("parentServiceOrderId", {
+            setValueAs: (value) => value || null,
+          })}
         >
           <option value="">Sin orden relacionada</option>
           {orders.data?.items
@@ -235,8 +235,7 @@ export function OrderManager() {
           aria-label="Nota técnico"
           placeholder="Nota visible al técnico"
           className="min-h-20 w-full rounded-lg border p-3"
-          value={form.technicianNote}
-          onChange={(e) => set("technicianNote", e.target.value)}
+          {...orderForm.register("technicianNote")}
         />
         {create.error && (
           <p role="alert" className="text-sm text-red-700">

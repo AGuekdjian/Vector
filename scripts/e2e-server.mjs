@@ -1,14 +1,14 @@
 import { spawn } from "node:child_process";
 import bcrypt from "bcryptjs";
 import mongoose from "mongoose";
-import { MongoMemoryServer } from "mongodb-memory-server";
+import { MongoMemoryReplSet } from "mongodb-memory-server";
 import { Employee } from "../src/modules/employees/employee.model.js";
 import { User } from "../src/modules/users/user.model.js";
 import { NotCompletedReason } from "../src/modules/service-orders/not-completed-reason.model.js";
 
-const mongod = await MongoMemoryServer.create({
+const mongod = await MongoMemoryReplSet.create({
   binary: { version: process.env.MONGOMS_VERSION || "7.0.14" },
-  instance: { launchTimeout: 120_000, storageEngine: "wiredTiger" },
+  replSet: { count: 1, storageEngine: "wiredTiger" },
 });
 const uri = mongod.getUri("vector-e2e");
 await mongoose.connect(uri);

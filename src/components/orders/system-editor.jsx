@@ -1,18 +1,37 @@
 "use client";
+import { zodResolver } from "@hookform/resolvers/zod";
 import { useState } from "react";
+import { useForm } from "react-hook-form";
+import { z } from "zod";
 import { enqueueOperation, getOperation } from "@/offline/outbox";
 import { syncOutbox } from "@/offline/sync-manager";
 import { patchCachedOrder } from "@/offline/indexed-db";
+const editorSchema = z.object({
+  type: z.enum(["ALARM", "CCTV", "ACCESS_CONTROL", "OTHER"]),
+  brand: z.string().trim().max(100),
+  model: z.string().trim().max(100),
+  description: z.string().trim().max(2000),
+  imei: z.string().trim().max(100),
+  serialNumber: z.string().trim().max(200),
+  technicalNotes: z.string().trim().max(4000),
+  installedAt: z
+    .string()
+    .regex(/^\d{4}-\d{2}-\d{2}$/)
+    .or(z.literal("")),
+});
 export function SystemEditor({ system, serviceOrderId, onSaved }) {
-  const [form, setForm] = useState({
-    type: system.type,
-    brand: system.brand || "",
-    model: system.model || "",
-    description: system.description || "",
-    imei: system.imei || "",
-    serialNumber: system.serialNumber || "",
-    technicalNotes: system.technicalNotes || "",
-    installedAt: system.installedAt?.slice(0, 10) || "",
+  const { register, handleSubmit, getValues } = useForm({
+    resolver: zodResolver(editorSchema),
+    defaultValues: {
+      type: system.type,
+      brand: system.brand || "",
+      model: system.model || "",
+      description: system.description || "",
+      imei: system.imei || "",
+      serialNumber: system.serialNumber || "",
+      technicalNotes: system.technicalNotes || "",
+      installedAt: system.installedAt?.slice(0, 10) || "",
+    },
   });
   const [message, setMessage] = useState("");
   const [saving, setSaving] = useState(false);
@@ -48,7 +67,7 @@ export function SystemEditor({ system, serviceOrderId, onSaved }) {
       setSaving(false);
     }
   };
-  const save = async () => {
+  const save = async (form) => {
     await queue("UPDATE_SYSTEM", form, (order) => ({
       ...order,
       systems: order.systems.map((item) =>
@@ -57,6 +76,7 @@ export function SystemEditor({ system, serviceOrderId, onSaved }) {
     }));
   };
   const lifecycle = async (kind) => {
+    const form = getValues();
     await queue(kind, kind === "REPLACE_SYSTEM" ? form : {}, (order) => ({
       ...order,
       systems: order.systems.map((item) =>
@@ -74,8 +94,12 @@ export function SystemEditor({ system, serviceOrderId, onSaved }) {
       <summary className="cursor-pointer font-semibold">
         {system.type}: {system.brand} {system.model}
       </summary>
-      <div className="mt-3 grid gap-2">
-        {Object.keys(form)
+      <form
+        className="mt-3 grid gap-2"
+        onSubmit={handleSubmit(save)}
+        noValidate
+      >
+        {Object.keys(getValues())
           .filter((field) => field !== "type")
           .map((field) =>
             ["technicalNotes", "description"].includes(field) ? (
@@ -83,8 +107,7 @@ export function SystemEditor({ system, serviceOrderId, onSaved }) {
                 key={field}
                 aria-label="Observaciones técnicas"
                 className="min-h-20 rounded border p-2"
-                value={form[field]}
-                onChange={(e) => setForm({ ...form, [field]: e.target.value })}
+                {...register(field)}
               />
             ) : (
               <input
@@ -93,14 +116,13 @@ export function SystemEditor({ system, serviceOrderId, onSaved }) {
                 placeholder={field}
                 type={field === "installedAt" ? "date" : "text"}
                 className="min-h-10 rounded border px-2"
-                value={form[field]}
-                onChange={(e) => setForm({ ...form, [field]: e.target.value })}
+                {...register(field)}
               />
             ),
           )}
         <button
           disabled={saving}
-          onClick={save}
+          type="submit"
           className="min-h-10 rounded bg-zinc-900 text-white"
         >
           Guardar datos técnicos
@@ -108,6 +130,7 @@ export function SystemEditor({ system, serviceOrderId, onSaved }) {
         <div className="grid grid-cols-2 gap-2">
           <button
             disabled={saving}
+            type="button"
             onClick={() => lifecycle("RETIRE_SYSTEM")}
             className="min-h-10 rounded border border-red-700 text-red-800"
           >
@@ -115,6 +138,7 @@ export function SystemEditor({ system, serviceOrderId, onSaved }) {
           </button>
           <button
             disabled={saving}
+            type="button"
             onClick={() => lifecycle("REPLACE_SYSTEM")}
             className="min-h-10 rounded bg-red-800 text-white"
           >
@@ -126,7 +150,7 @@ export function SystemEditor({ system, serviceOrderId, onSaved }) {
             {message}
           </p>
         )}
-      </div>
+      </form>
     </details>
   );
 }

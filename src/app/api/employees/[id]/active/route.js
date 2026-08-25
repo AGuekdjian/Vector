@@ -20,7 +20,7 @@ export const PATCH = withApiHandler(
     const item = await Employee.findByIdAndUpdate(
       id,
       { $set: { active } },
-      { new: true },
+      { returnDocument: "after" },
     );
     if (!item)
       throw new AppError("EMPLOYEE_NOT_FOUND", "Empleado no encontrado.", 404);

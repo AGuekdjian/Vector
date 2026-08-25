@@ -5,7 +5,7 @@ export async function recordAudit(event, session) {
     return AuditEvent.findOneAndUpdate(
       { operationId: event.operationId },
       { $setOnInsert: event },
-      { upsert: true, new: true, ...(session && { session }) },
+      { upsert: true, returnDocument: "after", ...(session && { session }) },
     );
   const [created] = await AuditEvent.create(
     [event],

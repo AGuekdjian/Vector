@@ -54,7 +54,7 @@ export const POST = withApiHandler(
               removedByServiceOrderId: order._id,
             },
           },
-          { new: true, session },
+          { returnDocument: "after", session },
         );
         if (!previous)
           throw new AppError(

@@ -20,7 +20,7 @@ export const PATCH = withApiHandler(
     const item = await Customer.findByIdAndUpdate(
       id,
       { $set: { active, updatedBy: actor.id } },
-      { new: true },
+      { returnDocument: "after" },
     );
     if (!item)
       throw new AppError("CUSTOMER_NOT_FOUND", "Cliente no encontrado.", 404);

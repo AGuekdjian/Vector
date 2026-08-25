@@ -20,7 +20,7 @@ export const PATCH = withApiHandler(
     const item = await Vehicle.findByIdAndUpdate(
       id,
       { $set: { active } },
-      { new: true },
+      { returnDocument: "after" },
     );
     if (!item)
       throw new AppError("VEHICLE_NOT_FOUND", "Vehículo no encontrado.", 404);
