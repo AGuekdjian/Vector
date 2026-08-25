@@ -60,21 +60,11 @@ Docker Desktop debe estar iniciado. El script de limpieza usa el nombre de proye
 
 La autorización y el aislamiento del técnico siempre se aplican en backend. Las operaciones offline llevan identificador y hash para que un reintento no duplique cambios.
 
-## Despliegue
-
-Importe el repositorio en Vercel, configure las variables de `.env.example` por entorno y use el dominio real en `NEXT_PUBLIC_BASE_URL`. Autorice el acceso de Vercel en Atlas y ejecute `npm run build` antes de publicar. `/api/health` comprueba aplicación y base de datos.
+## Integración continua
 
 En producción, la sesión usa cookies `HttpOnly`, `Secure` y `SameSite=Lax`. También se envían CSP, protección anti-iframe, MIME sniffing, política de referencia y permisos restringidos.
 
-El workflow `CI` valida cada push y pull request. Después de un CI exitoso en `main`, el workflow `CD` despliega el artefacto precompilado en Vercel. Configure estos secretos en GitHub:
-
-- `VERCEL_TOKEN`
-- `VERCEL_ORG_ID`
-- `VERCEL_PROJECT_ID`
-
-Cuando los tres secretos estén configurados, cree la variable de repositorio `ENABLE_VERCEL_DEPLOY=true`. Mientras no exista, CD queda omitido de forma segura en vez de producir un despliegue incompleto.
-
-Configure `MONGODB_URI`, `AUTH_SECRET`, `NEXT_PUBLIC_APP_NAME` y `NEXT_PUBLIC_BASE_URL` como variables del proyecto de Vercel. Nunca copie valores reales en `.env.example`.
+El workflow `CI` valida cada push y pull request con lint, pruebas unitarias, integración, compilación, imagen Docker y pruebas E2E. El despliegue queda deliberadamente fuera del repositorio hasta completar las pruebas manuales de aceptación.
 
 ## Problemas frecuentes
 
