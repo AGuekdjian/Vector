@@ -35,7 +35,7 @@ El técnico debe iniciar sesión y abrir sus órdenes una vez con conexión. Las
 - `npm run lint`: análisis estático.
 - `npm run test`: pruebas unitarias.
 - `npm run test:integration`: pruebas de integración.
-- `npm run test:e2e`: flujo Playwright con MongoDB efímero.
+- `npm run test:e2e`: flujos Playwright con MongoDB efímero, auditoría axe de accesibilidad y validación PWA.
 - `npm run build`: compilación de producción.
 - `npm run start`: servidor de producción compilado.
 
