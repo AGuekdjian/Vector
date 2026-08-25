@@ -4,6 +4,26 @@ import { normalizeError } from "@/lib/errors/app-error";
 import { log } from "@/lib/logger/logger";
 import { AppError } from "@/lib/errors/app-error";
 
+const firstForwardedValue = (value) => value?.split(",", 1)[0].trim();
+
+export function isAllowedRequestOrigin(request) {
+  const origin = request.headers.get("origin");
+  if (!origin) return true;
+  const requestUrl = new URL(request.url);
+  const publicHost =
+    firstForwardedValue(request.headers.get("x-forwarded-host")) ||
+    request.headers.get("host") ||
+    requestUrl.host;
+  const forwardedProtocol = firstForwardedValue(
+    request.headers.get("x-forwarded-proto"),
+  );
+  const originUrl = new URL(origin);
+  return (
+    originUrl.host === publicHost &&
+    (!forwardedProtocol || originUrl.protocol === `${forwardedProtocol}:`)
+  );
+}
+
 export function withApiHandler(handler) {
   return async function apiHandler(request, context) {
     const startedAt = performance.now();
@@ -19,8 +39,7 @@ export function withApiHandler(handler) {
           413,
         );
       if (!["GET", "HEAD", "OPTIONS"].includes(request.method)) {
-        const origin = request.headers.get("origin");
-        if (origin && new URL(origin).host !== new URL(request.url).host)
+        if (!isAllowedRequestOrigin(request))
           throw new AppError(
             "FORBIDDEN",
             "Origen de solicitud no permitido.",
