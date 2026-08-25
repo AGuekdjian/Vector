@@ -1,21 +1,34 @@
 "use client";
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 import { useState } from "react";
+import { useForm, useWatch } from "react-hook-form";
+import { zodResolver } from "@hookform/resolvers/zod";
 import { useDebouncedValue } from "@/shared/hooks/use-debounced-value";
+import { customerSchema } from "@/modules/customers/customer.schemas";
 import Link from "next/link";
 export function CustomerManager() {
   const client = useQueryClient();
   const [q, setQ] = useState("");
   const [page, setPage] = useState(1);
   const debouncedQ = useDebouncedValue(q);
-  const [form, setForm] = useState({
-    customerType: "PERSON",
-    firstName: "",
-    lastName: "",
-    companyName: "",
-    primaryPhone: "",
-    subscriber: false,
+  const {
+    register,
+    control,
+    handleSubmit,
+    reset,
+    formState: { errors },
+  } = useForm({
+    resolver: zodResolver(customerSchema),
+    defaultValues: {
+      customerType: "PERSON",
+      firstName: "",
+      lastName: "",
+      companyName: "",
+      primaryPhone: "",
+      subscriber: false,
+    },
   });
+  const customerType = useWatch({ control, name: "customerType" });
   const { data, isLoading } = useQuery({
     queryKey: ["customers", debouncedQ, page],
     queryFn: async () => {
@@ -39,52 +52,48 @@ export function CustomerManager() {
     },
     onSuccess: () => {
       client.invalidateQueries({ queryKey: ["customers"] });
-      setForm({
-        ...form,
+      reset({
+        customerType: "PERSON",
         firstName: "",
         lastName: "",
         companyName: "",
         primaryPhone: "",
+        subscriber: false,
       });
     },
   });
-  const submit = (e) => {
-    e.preventDefault();
-    create.mutate(form);
-  };
   return (
     <div className="grid gap-6 lg:grid-cols-[360px_1fr]">
       <form
-        onSubmit={submit}
+        onSubmit={handleSubmit((data) => create.mutate(data))}
         className="space-y-3 rounded-xl border bg-white p-4"
       >
         <h2 className="font-bold">Nuevo cliente</h2>
         <select
           aria-label="Tipo"
           className="min-h-11 w-full rounded-lg border px-3"
-          value={form.customerType}
-          onChange={(e) => setForm({ ...form, customerType: e.target.value })}
+          {...register("customerType")}
         >
           <option value="PERSON">Persona</option>
           <option value="COMPANY">Empresa</option>
         </select>
-        {form.customerType === "PERSON" ? (
+        {customerType === "PERSON" ? (
           <>
             <input
               aria-label="Nombre"
               required
               placeholder="Nombre"
               className="min-h-11 w-full rounded-lg border px-3"
-              value={form.firstName}
-              onChange={(e) => setForm({ ...form, firstName: e.target.value })}
+              aria-invalid={!!errors.firstName}
+              {...register("firstName")}
             />
             <input
               aria-label="Apellido"
               required
               placeholder="Apellido"
               className="min-h-11 w-full rounded-lg border px-3"
-              value={form.lastName}
-              onChange={(e) => setForm({ ...form, lastName: e.target.value })}
+              aria-invalid={!!errors.lastName}
+              {...register("lastName")}
             />
           </>
         ) : (
@@ -93,8 +102,8 @@ export function CustomerManager() {
             required
             placeholder="Razón social"
             className="min-h-11 w-full rounded-lg border px-3"
-            value={form.companyName}
-            onChange={(e) => setForm({ ...form, companyName: e.target.value })}
+            aria-invalid={!!errors.companyName}
+            {...register("companyName")}
           />
         )}
         <input
@@ -102,17 +111,18 @@ export function CustomerManager() {
           required
           placeholder="Teléfono principal"
           className="min-h-11 w-full rounded-lg border px-3"
-          value={form.primaryPhone}
-          onChange={(e) => setForm({ ...form, primaryPhone: e.target.value })}
+          aria-invalid={!!errors.primaryPhone}
+          {...register("primaryPhone")}
         />
         <label className="flex gap-2">
-          <input
-            type="checkbox"
-            checked={form.subscriber}
-            onChange={(e) => setForm({ ...form, subscriber: e.target.checked })}
-          />
+          <input type="checkbox" {...register("subscriber")} />
           Abonado
         </label>
+        {Object.keys(errors).length > 0 && (
+          <p role="alert" className="text-sm text-red-700">
+            Revisa los campos obligatorios.
+          </p>
+        )}
         {create.error && (
           <p role="alert" className="text-sm text-red-700">
             {create.error.message}

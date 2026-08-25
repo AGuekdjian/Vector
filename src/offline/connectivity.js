@@ -13,10 +13,11 @@ export function useConnectivity() {
     const down = () => setOnline(false);
     addEventListener("online", up);
     addEventListener("offline", down);
-    navigator.serviceWorker?.addEventListener(
-      "message",
-      (event) => event.data?.type === "SYNC_OUTBOX" && syncOutbox(),
-    );
+    navigator.serviceWorker?.addEventListener("message", (event) => {
+      if (event.data?.type === "SYNC_OUTBOX") syncOutbox();
+      if (event.data?.type === "OUTBOX_CHANGED")
+        window.dispatchEvent(new Event("vector:outbox-changed"));
+    });
     return () => {
       removeEventListener("online", up);
       removeEventListener("offline", down);

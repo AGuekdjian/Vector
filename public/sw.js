@@ -61,14 +61,65 @@ self.addEventListener("message", (event) => {
     );
 });
 self.addEventListener("sync", (event) => {
-  if (event.tag === "vector-outbox")
-    event.waitUntil(
-      self.clients
-        .matchAll()
-        .then((clients) =>
-          clients.forEach((client) =>
-            client.postMessage({ type: "SYNC_OUTBOX" }),
-          ),
-        ),
-    );
+  if (event.tag === "vector-outbox") event.waitUntil(syncOutbox());
 });
+
+const openOfflineDb = () =>
+  new Promise((resolve, reject) => {
+    const request = indexedDB.open("vector-offline", 2);
+    request.onsuccess = () => resolve(request.result);
+    request.onerror = () => reject(request.error);
+  });
+
+const allOutbox = (db) =>
+  new Promise((resolve, reject) => {
+    const request = db.transaction("outbox").objectStore("outbox").getAll();
+    request.onsuccess = () => resolve(request.result);
+    request.onerror = () => reject(request.error);
+  });
+
+const putOutbox = (db, operation) =>
+  new Promise((resolve, reject) => {
+    const transaction = db.transaction("outbox", "readwrite");
+    transaction.objectStore("outbox").put(operation);
+    transaction.oncomplete = resolve;
+    transaction.onerror = () => reject(transaction.error);
+  });
+
+async function notifyOutboxChanged() {
+  for (const client of await self.clients.matchAll())
+    client.postMessage({ type: "OUTBOX_CHANGED" });
+}
+
+async function syncOutbox() {
+  const db = await openOfflineDb();
+  const operations = (await allOutbox(db)).filter((operation) =>
+    ["PENDING", "FAILED"].includes(operation.status),
+  );
+  for (const operation of operations) {
+    await putOutbox(db, { ...operation, status: "SYNCING" });
+    try {
+      const response = await fetch("/api/sync", {
+        method: "POST",
+        credentials: "same-origin",
+        headers: { "content-type": "application/json" },
+        body: JSON.stringify(operation),
+      });
+      const conflict = [400, 403, 404, 409, 422].includes(response.status);
+      if (!response.ok && !conflict) throw new Error("sync failed");
+      await putOutbox(db, {
+        ...operation,
+        status: conflict ? "CONFLICT" : "SYNCED",
+        ...(conflict ? {} : { syncedAt: new Date().toISOString() }),
+      });
+    } catch (error) {
+      await putOutbox(db, {
+        ...operation,
+        status: "FAILED",
+        attempts: (operation.attempts || 0) + 1,
+      });
+      throw error;
+    }
+  }
+  await notifyOutboxChanged();
+}

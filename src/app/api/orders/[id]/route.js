@@ -144,6 +144,18 @@ export const PATCH = withApiHandler(
       requestId,
       metadata: { fields: Object.keys(data) },
     });
+    for (const field of changes)
+      await recordAudit({
+        actorUserId: actor.id,
+        action:
+          field === "responsibleTechnicianId" && !data[field]
+            ? "TECHNICIAN_UNASSIGNED"
+            : timelineActions[field],
+        entityType: "ServiceOrder",
+        entityId: current._id,
+        requestId,
+        metadata: { value: data[field] || null },
+      });
     return NextResponse.json({ item: current });
   },
 );
