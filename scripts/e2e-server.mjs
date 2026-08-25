@@ -12,11 +12,24 @@ const mongod = await MongoMemoryServer.create({
 });
 const uri = mongod.getUri("vector-e2e");
 await mongoose.connect(uri);
-const [adminEmployee, technicianEmployee] = await Employee.create([
+const [
+  ownerEmployee,
+  adminEmployee,
+  technicianEmployee,
+  otherTechnicianEmployee,
+] = await Employee.create([
+  { firstName: "Olivia", lastName: "Owner" },
   { firstName: "Natalia", lastName: "Admin" },
   { firstName: "Anthony", lastName: "Técnico" },
+  { firstName: "Beatriz", lastName: "Técnica" },
 ]);
 await User.create([
+  {
+    employeeId: ownerEmployee._id,
+    username: "oowner",
+    passwordHash: await bcrypt.hash("Owner!123456789", 10),
+    role: "OWNER",
+  },
   {
     employeeId: adminEmployee._id,
     username: "nadmin",
@@ -27,6 +40,12 @@ await User.create([
     employeeId: technicianEmployee._id,
     username: "atecnico",
     passwordHash: await bcrypt.hash("Tech!123456789", 10),
+    role: "TECHNICIAN",
+  },
+  {
+    employeeId: otherTechnicianEmployee._id,
+    username: "btecnica",
+    passwordHash: await bcrypt.hash("Tech!987654321", 10),
     role: "TECHNICIAN",
   },
 ]);

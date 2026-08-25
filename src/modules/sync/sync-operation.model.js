@@ -17,5 +17,12 @@ const schema = new mongoose.Schema(
   },
   { timestamps: true },
 );
+schema.index(
+  { processedAt: 1 },
+  {
+    expireAfterSeconds: 60 * 60 * 24 * 90,
+    partialFilterExpression: { processedAt: { $type: "date" } },
+  },
+);
 export const SyncOperation =
   mongoose.models.SyncOperation || mongoose.model("SyncOperation", schema);

@@ -20,6 +20,7 @@ import {
 } from "@/modules/systems/system.schemas";
 import { recordAudit } from "@/modules/audit/audit.service";
 import { NotCompletedReason } from "@/modules/service-orders/not-completed-reason.model";
+import { appendOrderTimeline } from "@/modules/service-orders/order-timeline.service";
 
 const schema = z.object({
   operationId: z.uuid(),
@@ -166,6 +167,13 @@ export const POST = withApiHandler(async (request, _context, { requestId }) => {
       requestId,
       operationId: operation.operationId,
     });
+    await appendOrderTimeline({
+      orderId: order._id,
+      actorUserId: actor.id,
+      action: "SYSTEM_ADDED",
+      operationId: operation.operationId,
+      metadata: { systemId: String(result._id) },
+    });
   } else {
     const { serviceOrderId, ...changes } = operation.payload;
     const system = await InstalledSystem.findById(operation.entityId);
@@ -197,6 +205,16 @@ export const POST = withApiHandler(async (request, _context, { requestId }) => {
         operationId: operation.operationId,
         metadata: { fields: Object.keys(validChanges) },
       });
+      await appendOrderTimeline({
+        orderId: order._id,
+        actorUserId: actor.id,
+        action: "SYSTEM_UPDATED",
+        operationId: operation.operationId,
+        metadata: {
+          systemId: String(result._id),
+          fields: Object.keys(validChanges),
+        },
+      });
     } else if (operation.kind === "RETIRE_SYSTEM") {
       if (system.removedOperationId === operation.operationId) result = system;
       else if (system.status !== "ACTIVE")
@@ -219,6 +237,13 @@ export const POST = withApiHandler(async (request, _context, { requestId }) => {
         entityId: result._id,
         requestId,
         operationId: operation.operationId,
+      });
+      await appendOrderTimeline({
+        orderId: order._id,
+        actorUserId: actor.id,
+        action: "SYSTEM_RETIRED",
+        operationId: operation.operationId,
+        metadata: { systemId: String(result._id) },
       });
     } else {
       if (
@@ -254,6 +279,16 @@ export const POST = withApiHandler(async (request, _context, { requestId }) => {
         requestId,
         operationId: operation.operationId,
         metadata: { replacementId: String(result._id) },
+      });
+      await appendOrderTimeline({
+        orderId: order._id,
+        actorUserId: actor.id,
+        action: "SYSTEM_REPLACED",
+        operationId: operation.operationId,
+        metadata: {
+          systemId: String(system._id),
+          replacementId: String(result._id),
+        },
       });
     }
   }

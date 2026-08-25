@@ -23,5 +23,6 @@ const schema = new mongoose.Schema(
 schema.index({ lastName: 1, firstName: 1, active: 1 });
 schema.index({ companyName: 1, active: 1 });
 schema.index({ primaryPhone: 1 });
+schema.index({ active: 1, updatedAt: -1 });
 export const Customer =
   mongoose.models.Customer || mongoose.model("Customer", schema);

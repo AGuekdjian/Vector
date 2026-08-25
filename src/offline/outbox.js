@@ -28,9 +28,12 @@ export async function enqueueOperation(kind, entityId, payload) {
 }
 export async function listPendingOperations() {
   const db = await getOfflineDb();
-  const all = await db.getAll("outbox");
-  return all.filter((item) =>
-    [OUTBOX_STATUS.PENDING, OUTBOX_STATUS.FAILED].includes(item.status),
+  const [pending, failed] = await Promise.all([
+    db.getAllFromIndex("outbox", "status", OUTBOX_STATUS.PENDING),
+    db.getAllFromIndex("outbox", "status", OUTBOX_STATUS.FAILED),
+  ]);
+  return [...pending, ...failed].sort((a, b) =>
+    a.createdAt.localeCompare(b.createdAt),
   );
 }
 export async function updateOperation(operationId, patch) {

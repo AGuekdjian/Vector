@@ -42,12 +42,13 @@ export function AdministrationManager() {
   });
   const users = useQuery({
     queryKey: ["users"],
-    queryFn: () => get("/api/users"),
+    queryFn: () => get("/api/users?limit=100"),
   });
   const reasons = useQuery({
     queryKey: ["reasons"],
     queryFn: () => get("/api/not-completed-reasons?includeInactive=true"),
   });
+  const me = useQuery({ queryKey: ["me"], queryFn: () => get("/api/auth/me") });
   const addEmployee = useMutation({
     mutationFn: (data) => post("/api/employees", data),
     onSuccess: () => {
@@ -81,6 +82,10 @@ export function AdministrationManager() {
       active: !item.active,
     });
     qc.invalidateQueries({ queryKey: [key] });
+  };
+  const changeRole = async (item, role) => {
+    await patch(`/api/users/${item._id}/role`, { role });
+    qc.invalidateQueries({ queryKey: ["users"] });
   };
   return (
     <div className="grid gap-5 lg:grid-cols-3">
@@ -153,11 +158,13 @@ export function AdministrationManager() {
             onChange={(e) => setUser({ ...user, employeeId: e.target.value })}
           >
             <option value="">Empleado</option>
-            {employees.data?.items.map((x) => (
-              <option key={x._id} value={x._id}>
-                {x.firstName} {x.lastName}
-              </option>
-            ))}
+            {employees.data?.items
+              .filter((x) => x.active)
+              .map((x) => (
+                <option key={x._id} value={x._id}>
+                  {x.firstName} {x.lastName}
+                </option>
+              ))}
           </select>
           <select
             aria-label="Rol"
@@ -195,12 +202,25 @@ export function AdministrationManager() {
                 {x.username} · {x.role}
               </span>
               {x.role !== "OWNER" && (
-                <button
-                  className="rounded border px-2 py-1 text-xs"
-                  onClick={() => toggle("users", x, "users")}
-                >
-                  {x.active ? "Desactivar" : "Reactivar"}
-                </button>
+                <span className="flex gap-1">
+                  {me.data?.user?.role === "OWNER" && (
+                    <select
+                      aria-label={`Rol de ${x.username}`}
+                      className="rounded border px-1 text-xs"
+                      value={x.role}
+                      onChange={(event) => changeRole(x, event.target.value)}
+                    >
+                      <option>TECHNICIAN</option>
+                      <option>ADMIN</option>
+                    </select>
+                  )}
+                  <button
+                    className="rounded border px-2 py-1 text-xs"
+                    onClick={() => toggle("users", x, "users")}
+                  >
+                    {x.active ? "Desactivar" : "Reactivar"}
+                  </button>
+                </span>
               )}
             </li>
           ))}

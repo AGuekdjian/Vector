@@ -8,14 +8,17 @@ import { Installation } from "@/modules/installations/installation.model";
 import { installationSchema } from "@/modules/installations/installation.schemas";
 export const GET = withApiHandler(async (request) => {
   await requireUser(["OWNER", "ADMIN"]);
-  const customerId = objectId(
-    new URL(request.url).searchParams.get("customerId"),
-    "cliente",
-  );
+  const url = new URL(request.url);
+  const customerId = objectId(url.searchParams.get("customerId"), "cliente");
   await connectDatabase();
   return NextResponse.json({
-    items: await Installation.find({ customerId, active: true })
-      .sort({ name: 1 })
+    items: await Installation.find({
+      customerId,
+      ...(url.searchParams.get("includeInactive") === "true"
+        ? {}
+        : { active: true }),
+    })
+      .sort({ active: -1, name: 1 })
       .lean(),
   });
 });

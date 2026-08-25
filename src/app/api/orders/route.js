@@ -140,6 +140,15 @@ export const POST = withApiHandler(async (request, _context, { requestId }) => {
       entityId: item._id,
       requestId,
     });
+    if (status === "ASSIGNED")
+      await recordAudit({
+        actorUserId: actor.id,
+        action: "ORDER_ASSIGNED",
+        entityType: "ServiceOrder",
+        entityId: item._id,
+        requestId,
+        metadata: { technicianId: String(data.responsibleTechnicianId) },
+      });
     return NextResponse.json({ item }, { status: 201 });
   } catch (error) {
     if (error?.code === 11000)

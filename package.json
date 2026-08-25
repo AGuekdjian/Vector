@@ -15,7 +15,9 @@
     "test:integration": "vitest run --config vitest.config.js tests/integration",
     "test:e2e": "playwright test",
     "seed:owner": "node --env-file=.env.local scripts/seed-owner.mjs",
-    "e2e:server": "node scripts/e2e-server.mjs"
+    "e2e:server": "node scripts/e2e-server.mjs",
+    "docker:up": "powershell.exe -NoProfile -ExecutionPolicy Bypass -File scripts/docker-start.ps1",
+    "docker:down": "powershell.exe -NoProfile -ExecutionPolicy Bypass -File scripts/docker-stop.ps1"
   },
   "dependencies": {
     "@hookform/resolvers": "^5.9.1",

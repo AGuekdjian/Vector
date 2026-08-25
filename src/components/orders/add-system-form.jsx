@@ -8,9 +8,11 @@ export function AddSystemForm({ order, onSaved }) {
     type: "ALARM",
     brand: "",
     model: "",
+    description: "",
     imei: "",
     serialNumber: "",
     technicalNotes: "",
+    installedAt: "",
   });
   const [message, setMessage] = useState("");
   const [saving, setSaving] = useState(false);
@@ -19,7 +21,16 @@ export function AddSystemForm({ order, onSaved }) {
     if (saving) return;
     setSaving(true);
     try {
-      const operation = await enqueueOperation("ADD_SYSTEM", order._id, form);
+      const payload = Object.fromEntries(
+        Object.entries(form).filter(
+          ([field, value]) => field !== "installedAt" || value,
+        ),
+      );
+      const operation = await enqueueOperation(
+        "ADD_SYSTEM",
+        order._id,
+        payload,
+      );
       await patchCachedOrder(order._id, (current) => ({
         ...current,
         systems: [
@@ -66,10 +77,28 @@ export function AddSystemForm({ order, onSaved }) {
             <option key={x}>{x}</option>
           ))}
         </select>
-        {["brand", "model", "imei", "serialNumber", "technicalNotes"].map(
-          (field) => (
+        {[
+          "brand",
+          "model",
+          "description",
+          "imei",
+          "serialNumber",
+          "technicalNotes",
+          "installedAt",
+        ].map((field) =>
+          ["description", "technicalNotes"].includes(field) ? (
+            <textarea
+              key={field}
+              aria-label={`Nuevo ${field}`}
+              placeholder={field}
+              className="min-h-20 rounded border p-2"
+              value={form[field]}
+              onChange={(e) => setForm({ ...form, [field]: e.target.value })}
+            />
+          ) : (
             <input
               key={field}
+              type={field === "installedAt" ? "date" : "text"}
               aria-label={`Nuevo ${field}`}
               placeholder={field}
               className="min-h-10 rounded border px-2"
