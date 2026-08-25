@@ -8,9 +8,11 @@ export function SystemEditor({ system, serviceOrderId, onSaved }) {
     type: system.type,
     brand: system.brand || "",
     model: system.model || "",
+    description: system.description || "",
     imei: system.imei || "",
     serialNumber: system.serialNumber || "",
     technicalNotes: system.technicalNotes || "",
+    installedAt: system.installedAt?.slice(0, 10) || "",
   });
   const [message, setMessage] = useState("");
   const [saving, setSaving] = useState(false);
@@ -18,8 +20,13 @@ export function SystemEditor({ system, serviceOrderId, onSaved }) {
     if (saving) return;
     setSaving(true);
     try {
+      const cleaned = Object.fromEntries(
+        Object.entries(payload).filter(
+          ([field, value]) => field !== "installedAt" || value,
+        ),
+      );
       const operation = await enqueueOperation(kind, system._id, {
-        ...payload,
+        ...cleaned,
         serviceOrderId,
       });
       await patchCachedOrder(serviceOrderId, optimistic);
@@ -71,7 +78,7 @@ export function SystemEditor({ system, serviceOrderId, onSaved }) {
         {Object.keys(form)
           .filter((field) => field !== "type")
           .map((field) =>
-            field === "technicalNotes" ? (
+            ["technicalNotes", "description"].includes(field) ? (
               <textarea
                 key={field}
                 aria-label="Observaciones técnicas"
@@ -84,6 +91,7 @@ export function SystemEditor({ system, serviceOrderId, onSaved }) {
                 key={field}
                 aria-label={field}
                 placeholder={field}
+                type={field === "installedAt" ? "date" : "text"}
                 className="min-h-10 rounded border px-2"
                 value={form[field]}
                 onChange={(e) => setForm({ ...form, [field]: e.target.value })}

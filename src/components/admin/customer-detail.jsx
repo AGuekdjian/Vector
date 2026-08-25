@@ -2,6 +2,8 @@
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 import { useState } from "react";
 import { CustomerAdminForm } from "@/components/admin/customer-admin-form";
+import { InstallationAdminCard } from "@/components/admin/installation-admin-card";
+import { SystemAdminCard } from "@/components/admin/system-admin-card";
 const get = async (url) => {
   const r = await fetch(url);
   if (!r.ok) throw new Error((await r.json()).error?.message);
@@ -31,11 +33,13 @@ export function CustomerDetail({ id }) {
   });
   const installations = useQuery({
     queryKey: ["installations", id],
-    queryFn: () => get(`/api/installations?customerId=${id}`),
+    queryFn: () =>
+      get(`/api/installations?customerId=${id}&includeInactive=true`),
   });
   const systems = useQuery({
     queryKey: ["systems", selected],
-    queryFn: () => get(`/api/systems?installationId=${selected}`),
+    queryFn: () =>
+      get(`/api/systems?installationId=${selected}&includeInactive=true`),
     enabled: !!selected,
   });
   const history = useQuery({
@@ -128,18 +132,20 @@ export function CustomerDetail({ id }) {
         </form>
         <div>
           <h2 className="mb-3 font-bold">Instalaciones</h2>
-          <div className="flex flex-wrap gap-2">
+          <div className="grid gap-2">
             {installations.data?.items.map((x) => (
-              <button
+              <InstallationAdminCard
                 key={x._id}
-                onClick={() => {
+                installation={x}
+                selected={selected === x._id}
+                onSelect={() => {
                   setSelected(x._id);
                   setSystem((old) => ({ ...old, installationId: x._id }));
                 }}
-                className={`rounded-lg border px-3 py-2 ${selected === x._id ? "bg-zinc-900 text-white" : "bg-white"}`}
-              >
-                {x.name}
-              </button>
+                onChanged={() =>
+                  qc.invalidateQueries({ queryKey: ["installations", id] })
+                }
+              />
             ))}
           </div>
           {selected && (
@@ -188,14 +194,24 @@ export function CustomerDetail({ id }) {
               </form>
               <ul className="divide-y rounded-xl border bg-white">
                 {systems.data?.items.map((x) => (
-                  <li key={x._id} className="p-3">
-                    <strong>
-                      {x.type}: {x.brand} {x.model}
-                    </strong>
-                    <p className="text-sm text-zinc-600">
-                      {x.status} {x.imei && `· IMEI ${x.imei}`}{" "}
-                      {x.serialNumber && `· Serie ${x.serialNumber}`}
-                    </p>
+                  <li key={x._id}>
+                    <SystemAdminCard
+                      system={x}
+                      onChanged={() =>
+                        qc.invalidateQueries({
+                          queryKey: ["systems", selected],
+                        })
+                      }
+                    />
+                    <div className="sr-only">
+                      <strong>
+                        {x.type}: {x.brand} {x.model}
+                      </strong>
+                      <p className="text-sm text-zinc-600">
+                        {x.status} {x.imei && `· IMEI ${x.imei}`}{" "}
+                        {x.serialNumber && `· Serie ${x.serialNumber}`}
+                      </p>
+                    </div>
                   </li>
                 ))}
               </ul>

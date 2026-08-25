@@ -97,6 +97,36 @@ export function TechnicianOrderDetail({ id }) {
           {customer.primaryPhone}
         </a>
         <p className="mt-3">{address}</p>
+        {customer.secondaryPhone && (
+          <a
+            className="mt-1 block text-red-800 underline"
+            href={`tel:${customer.secondaryPhone}`}
+          >
+            {customer.secondaryPhone}
+          </a>
+        )}
+        <dl className="mt-3 grid grid-cols-2 gap-2 text-sm">
+          <div>
+            <dt className="text-zinc-500">Compañero</dt>
+            <dd>
+              {order.companionEmployeeId
+                ? `${order.companionEmployeeId.firstName} ${order.companionEmployeeId.lastName}`
+                : "Solo"}
+            </dd>
+          </div>
+          <div>
+            <dt className="text-zinc-500">Vehículo</dt>
+            <dd>{order.vehicleId?.plate || "Sin vehículo"}</dd>
+          </div>
+          <div>
+            <dt className="text-zinc-500">Fecha</dt>
+            <dd>{new Date(order.scheduledDate).toLocaleDateString("es-UY")}</dd>
+          </div>
+          <div>
+            <dt className="text-zinc-500">Hora</dt>
+            <dd>{order.scheduledTime}</dd>
+          </div>
+        </dl>
         <a
           className="mt-3 inline-flex min-h-12 items-center rounded-lg bg-zinc-900 px-4 font-semibold text-white"
           target="_blank"

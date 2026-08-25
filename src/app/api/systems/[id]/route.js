@@ -15,7 +15,11 @@ export const PATCH = withApiHandler(
     objectId(id);
     const data = await parseJson(request, systemUpdateSchema);
     await connectDatabase();
-    const current = await InstalledSystem.findById(id);
+    const current = await InstalledSystem.findOne({
+      _id: id,
+      active: true,
+      status: "ACTIVE",
+    });
     if (!current)
       throw new AppError("SYSTEM_NOT_FOUND", "Sistema no encontrado.", 404);
     if (actor.role === "TECHNICIAN") {

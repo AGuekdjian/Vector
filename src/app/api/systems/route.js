@@ -10,13 +10,19 @@ import { ServiceOrder } from "@/modules/service-orders/service-order.model";
 import { AppError } from "@/lib/errors/app-error";
 export const GET = withApiHandler(async (request) => {
   await requireUser(["OWNER", "ADMIN"]);
+  const url = new URL(request.url);
   const installationId = objectId(
-    new URL(request.url).searchParams.get("installationId"),
+    url.searchParams.get("installationId"),
     "instalación",
   );
   await connectDatabase();
   return NextResponse.json({
-    items: await InstalledSystem.find({ installationId, active: true })
+    items: await InstalledSystem.find({
+      installationId,
+      ...(url.searchParams.get("includeInactive") === "true"
+        ? {}
+        : { active: true }),
+    })
       .sort({ createdAt: -1 })
       .lean(),
   });
