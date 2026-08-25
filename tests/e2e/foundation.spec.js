@@ -324,6 +324,7 @@ test("admin creates an order and its technician completes it with traceability",
     .getByLabel("Observación")
     .fill("Se realizaron pruebas. Sistema operativo.");
   await page.getByRole("button", { name: "Confirmar resultado" }).click();
+  await expect(page.getByText("Sincronizado")).toBeVisible();
   await page.request.post("/api/auth/login", {
     data: { username: "nadmin", password: "Admin!123456789" },
   });

@@ -77,6 +77,7 @@ export function TechnicianOrderDetail({ id }) {
   const mutate = async (kind, payload = {}) => {
     if (isMutating) return;
     setIsMutating(true);
+    setMessage("Guardando…");
     try {
       const operation = await enqueueOperation(kind, id, payload);
       const local = await patchCachedOrder(id, (current) => ({
