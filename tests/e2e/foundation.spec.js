@@ -94,6 +94,51 @@ test("enforces owner protection and technician isolation", async ({
   expect(ownOrder.customerId.internalNotes).toBeUndefined();
 });
 
+test("owner creates an administrator and the administrator creates a technician", async ({
+  request,
+}) => {
+  await loginApi(request, "oowner", "Owner!123456789");
+  const adminEmployeeResponse = await request.post("/api/employees", {
+    data: { firstName: "Flujo", lastName: "Administrador" },
+  });
+  expect(adminEmployeeResponse.status()).toBe(201);
+  const adminEmployee = (await adminEmployeeResponse.json()).item;
+  const adminResponse = await request.post("/api/users", {
+    data: {
+      employeeId: adminEmployee._id,
+      password: "FlowAdmin!123456",
+      role: "ADMIN",
+    },
+  });
+  expect(adminResponse.status()).toBe(201);
+  const admin = (await adminResponse.json()).item;
+
+  await loginApi(request, admin.username, "FlowAdmin!123456");
+  const technicianEmployeeResponse = await request.post("/api/employees", {
+    data: { firstName: "Flujo", lastName: "Tecnico" },
+  });
+  expect(technicianEmployeeResponse.status()).toBe(201);
+  const technicianEmployee = (await technicianEmployeeResponse.json()).item;
+  const technicianResponse = await request.post("/api/users", {
+    data: {
+      employeeId: technicianEmployee._id,
+      password: "FlowTech!1234567",
+      role: "TECHNICIAN",
+    },
+  });
+  expect(technicianResponse.status()).toBe(201);
+  expect((await technicianResponse.json()).item.role).toBe("TECHNICIAN");
+
+  const forbiddenAdminResponse = await request.post("/api/users", {
+    data: {
+      employeeId: technicianEmployee._id,
+      password: "AnotherAdmin!123",
+      role: "ADMIN",
+    },
+  });
+  expect(forbiddenAdminResponse.status()).toBe(403);
+});
+
 test("renders the application entry point", async ({ page }) => {
   await page.goto("/");
   await expect(
