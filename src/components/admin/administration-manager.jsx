@@ -177,10 +177,17 @@ export function AdministrationManager() {
           </select>
           <input
             required
-            minLength={user.role === "ADMIN" ? 12 : 4}
-            type="password"
+            minLength={user.role === "ADMIN" ? 10 : 4}
+            maxLength={user.role === "ADMIN" ? 128 : 4}
+            type={user.role === "ADMIN" ? "password" : "text"}
+            inputMode={user.role === "TECHNICIAN" ? "numeric" : undefined}
+            pattern={user.role === "TECHNICIAN" ? "[0-9]{4}" : undefined}
             aria-label="Contraseña"
-            placeholder="Contraseña inicial segura"
+            placeholder={
+              user.role === "ADMIN"
+                ? "Contraseña segura (mínimo 10)"
+                : "PIN de 4 dígitos"
+            }
             className="min-h-10 w-full rounded border px-2"
             value={user.password}
             onChange={(e) => setUser({ ...user, password: e.target.value })}

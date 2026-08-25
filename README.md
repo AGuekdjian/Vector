@@ -5,6 +5,7 @@ Aplicación web mobile-first para administrar clientes, instalaciones, sistemas 
 ## Funcionalidad
 
 - Roles `OWNER`, `ADMIN` y `TECHNICIAN`. Solo `OWNER` administra otros administradores y ningún administrador puede modificar al propietario.
+- OWNER y ADMIN usan contraseñas de al menos 10 caracteres con mayúscula, minúscula, número y símbolo; los técnicos usan un PIN de exactamente 4 dígitos.
 - Clientes, contratos, instalaciones y sistemas instalados con retiro y reemplazo sin borrar historial.
 - Órdenes con número externo único, técnico, acompañante, vehículo, resultado y línea de tiempo.
 - El técnico solo accede a sus órdenes asignadas. Puede abrir Maps, iniciar/finalizar trabajos y actualizar sistemas.

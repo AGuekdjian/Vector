@@ -14,6 +14,17 @@ describe("authentication validation", () => {
         password: "7391",
       }).success,
     ).toBe(true));
+  it.each(["123", "12345", "12a4", "abcd"])(
+    "rejects invalid technician PIN %s",
+    (password) =>
+      expect(
+        createUserSchema.safeParse({
+          employeeId,
+          role: "TECHNICIAN",
+          password,
+        }).success,
+      ).toBe(false),
+  );
   it("requires strong administrative passwords", () => {
     expect(
       createUserSchema.safeParse({
@@ -26,7 +37,7 @@ describe("authentication validation", () => {
       createUserSchema.safeParse({
         employeeId,
         role: "ADMIN",
-        password: "Strong!Password9",
+        password: "Mouse.3011",
       }).success,
     ).toBe(true);
   });

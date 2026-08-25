@@ -122,7 +122,7 @@ test("owner creates an administrator and the administrator creates a technician"
   const technicianResponse = await request.post("/api/users", {
     data: {
       employeeId: technicianEmployee._id,
-      password: "FlowTech!1234567",
+      password: "7391",
       role: "TECHNICIAN",
     },
   });
