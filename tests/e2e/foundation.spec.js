@@ -147,6 +147,108 @@ test("renders the application entry point", async ({ page }) => {
   await expect(page.getByRole("link", { name: "Ingresar" })).toBeVisible();
 });
 
+test("preserves system history through retire and replace lifecycle", async ({
+  request,
+}) => {
+  await loginApi(request, "nadmin", "Admin!123456789");
+  const users = (await (await request.get("/api/users?limit=100")).json())
+    .items;
+  const technician = users.find((user) => user.username === "atecnico");
+  const customer = (
+    await (
+      await request.post("/api/customers", {
+        data: {
+          customerType: "COMPANY",
+          companyName: "Sistemas Históricos SA",
+          primaryPhone: "29001122",
+          subscriber: true,
+        },
+      })
+    ).json()
+  ).item;
+  const installation = (
+    await (
+      await request.post("/api/installations", {
+        data: {
+          customerId: customer._id,
+          name: "Sede",
+          address: "Colonia 1234",
+        },
+      })
+    ).json()
+  ).item;
+  const order = (
+    await (
+      await request.post("/api/orders", {
+        data: {
+          externalOrderNumber: `SYS-${Date.now()}`,
+          customerId: customer._id,
+          installationId: installation._id,
+          responsibleTechnicianId: technician._id,
+          scheduledDate: new Date().toISOString(),
+          scheduledTime: "11:00",
+          workDescription: "Validar ciclo de sistemas",
+        },
+      })
+    ).json()
+  ).item;
+  const createSystem = async (serialNumber) =>
+    (
+      await (
+        await request.post("/api/systems", {
+          data: {
+            installationId: installation._id,
+            type: "CCTV",
+            brand: "Hikvision",
+            model: "NVR",
+            serialNumber,
+          },
+        })
+      ).json()
+    ).item;
+  const retired = await createSystem("OLD-RETIRE");
+  const replaced = await createSystem("OLD-REPLACE");
+  expect(
+    (
+      await request.post(
+        `/api/systems/${retired._id}/retire?serviceOrderId=${order._id}`,
+      )
+    ).ok(),
+  ).toBeTruthy();
+  const replacementResponse = await request.post(
+    `/api/systems/${replaced._id}/replace?serviceOrderId=${order._id}`,
+    {
+      data: {
+        type: "CCTV",
+        brand: "Dahua",
+        model: "NVR-2",
+        serialNumber: "NEW-REPLACE",
+      },
+    },
+  );
+  expect(replacementResponse.status()).toBe(201);
+  const replacement = (await replacementResponse.json()).item;
+  const systems = (
+    await (
+      await request.get(
+        `/api/systems?installationId=${installation._id}&includeInactive=true`,
+      )
+    ).json()
+  ).items;
+  expect(systems.find((item) => item._id === retired._id).status).toBe(
+    "RETIRED",
+  );
+  expect(systems.find((item) => item._id === replaced._id).status).toBe(
+    "REPLACED",
+  );
+  expect(systems.find((item) => item._id === replacement._id).status).toBe(
+    "ACTIVE",
+  );
+  expect((await request.delete(`/api/systems/${retired._id}`)).status()).toBe(
+    405,
+  );
+});
+
 test("admin creates an order and its technician completes it with traceability", async ({
   page,
 }) => {
