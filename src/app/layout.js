@@ -1,5 +1,4 @@
 import { Geist } from "next/font/google";
-import { QueryProvider } from "@/components/providers/query-provider";
 import { ServiceWorkerRegistration } from "@/components/providers/service-worker-registration";
 import "./globals.css";
 
@@ -21,7 +20,7 @@ export default function RootLayout({ children }) {
     <html lang="es" className={`${geistSans.variable} h-full antialiased`}>
       <body className="flex min-h-full flex-col">
         <ServiceWorkerRegistration />
-        <QueryProvider>{children}</QueryProvider>
+        {children}
       </body>
     </html>
   );

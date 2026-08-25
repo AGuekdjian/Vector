@@ -17,5 +17,6 @@ const schema = new mongoose.Schema(
   { timestamps: { createdAt: true, updatedAt: false } },
 );
 schema.index({ entityType: 1, entityId: 1, createdAt: -1 });
+schema.index({ createdAt: -1 });
 export const AuditEvent =
   mongoose.models.AuditEvent || mongoose.model("AuditEvent", schema);

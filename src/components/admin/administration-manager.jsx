@@ -42,7 +42,7 @@ export function AdministrationManager() {
   });
   const users = useQuery({
     queryKey: ["users"],
-    queryFn: () => get("/api/users"),
+    queryFn: () => get("/api/users?limit=100"),
   });
   const reasons = useQuery({
     queryKey: ["reasons"],

@@ -27,7 +27,7 @@ function OrderEditor({ order }) {
   });
   const users = useQuery({
     queryKey: ["users"],
-    queryFn: () => get("/api/users"),
+    queryFn: () => get("/api/users?active=true&limit=100"),
   });
   const employees = useQuery({
     queryKey: ["employees"],

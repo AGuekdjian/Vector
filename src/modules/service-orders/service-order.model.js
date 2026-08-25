@@ -107,5 +107,8 @@ schema.index({
   active: 1,
 });
 schema.index({ customerId: 1, createdAt: -1 });
+schema.index({ active: 1, scheduledDate: -1, status: 1 });
+schema.index({ customerId: 1, active: 1, scheduledDate: -1 });
+schema.index({ installationId: 1, active: 1, completedAt: -1 });
 export const ServiceOrder =
   mongoose.models.ServiceOrder || mongoose.model("ServiceOrder", schema);

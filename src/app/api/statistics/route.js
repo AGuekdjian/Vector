@@ -7,31 +7,48 @@ export const GET = withApiHandler(async () => {
   await requireUser(["OWNER", "ADMIN"]);
   await connectDatabase();
   const now = new Date();
-  const today = new Date(now.getFullYear(), now.getMonth(), now.getDate());
-  const month = new Date(now.getFullYear(), now.getMonth(), 1);
-  const previous = new Date(now.getFullYear(), now.getMonth() - 1, 1);
-  const [todayCount, monthCount, previousCount, byStatus] = await Promise.all([
-    ServiceOrder.countDocuments({
-      active: true,
-      scheduledDate: { $gte: today },
-    }),
-    ServiceOrder.countDocuments({
-      active: true,
-      scheduledDate: { $gte: month },
-    }),
-    ServiceOrder.countDocuments({
-      active: true,
-      scheduledDate: { $gte: previous, $lt: month },
-    }),
-    ServiceOrder.aggregate([
-      { $match: { active: true, scheduledDate: { $gte: month } } },
-      { $group: { _id: "$status", count: { $sum: 1 } } },
-    ]),
+  const uruguay = new Date(now.getTime() - 3 * 60 * 60 * 1000);
+  const year = uruguay.getUTCFullYear();
+  const monthIndex = uruguay.getUTCMonth();
+  const day = uruguay.getUTCDate();
+  const boundary = (y, m, d) => new Date(Date.UTC(y, m, d, 3));
+  const today = boundary(year, monthIndex, day);
+  const tomorrow = boundary(year, monthIndex, day + 1);
+  const month = boundary(year, monthIndex, 1);
+  const nextMonth = boundary(year, monthIndex + 1, 1);
+  const previous = boundary(year, monthIndex - 1, 1);
+  const [result] = await ServiceOrder.aggregate([
+    {
+      $match: {
+        active: true,
+        scheduledDate: { $gte: previous, $lt: nextMonth },
+      },
+    },
+    {
+      $facet: {
+        today: [
+          { $match: { scheduledDate: { $gte: today, $lt: tomorrow } } },
+          { $count: "value" },
+        ],
+        thisMonth: [
+          { $match: { scheduledDate: { $gte: month, $lt: nextMonth } } },
+          { $count: "value" },
+        ],
+        previousMonth: [
+          { $match: { scheduledDate: { $gte: previous, $lt: month } } },
+          { $count: "value" },
+        ],
+        byStatus: [
+          { $match: { scheduledDate: { $gte: month, $lt: nextMonth } } },
+          { $group: { _id: "$status", count: { $sum: 1 } } },
+        ],
+      },
+    },
   ]);
   return NextResponse.json({
-    today: todayCount,
-    thisMonth: monthCount,
-    previousMonth: previousCount,
-    byStatus: Object.fromEntries(byStatus.map((x) => [x._id, x.count])),
+    today: result.today[0]?.value || 0,
+    thisMonth: result.thisMonth[0]?.value || 0,
+    previousMonth: result.previousMonth[0]?.value || 0,
+    byStatus: Object.fromEntries(result.byStatus.map((x) => [x._id, x.count])),
   });
 });

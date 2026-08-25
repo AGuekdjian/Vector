@@ -14,6 +14,9 @@ export function OrderManager() {
   const [number, setNumber] = useState("");
   const debouncedNumber = useDebouncedValue(number);
   const [range, setRange] = useState({ from: "", to: "" });
+  const [page, setPage] = useState(1);
+  const [technicianId, setTechnicianId] = useState("");
+  const [customerFilter, setCustomerFilter] = useState("");
   const [form, setForm] = useState({
     externalOrderNumber: "",
     customerId: "",
@@ -26,12 +29,21 @@ export function OrderManager() {
     workDescription: "",
     technicianNote: "",
     internalNote: "",
+    parentServiceOrderId: null,
   });
   const orders = useQuery({
-    queryKey: ["orders-admin", status, debouncedNumber, range],
+    queryKey: [
+      "orders-admin",
+      status,
+      debouncedNumber,
+      range,
+      technicianId,
+      customerFilter,
+      page,
+    ],
     queryFn: () =>
       get(
-        `/api/orders?status=${status}&number=${encodeURIComponent(debouncedNumber)}&dateFrom=${range.from}&dateTo=${range.to}`,
+        `/api/orders?status=${status}&number=${encodeURIComponent(debouncedNumber)}&dateFrom=${range.from}&dateTo=${range.to}&technicianId=${technicianId}&customerId=${customerFilter}&page=${page}&limit=20`,
       ),
   });
   const customers = useQuery({
@@ -40,7 +52,7 @@ export function OrderManager() {
   });
   const users = useQuery({
     queryKey: ["users"],
-    queryFn: () => get("/api/users"),
+    queryFn: () => get("/api/users?active=true&limit=100"),
   });
   const employees = useQuery({
     queryKey: ["employees"],
@@ -200,6 +212,25 @@ export function OrderManager() {
           value={form.workDescription}
           onChange={(e) => set("workDescription", e.target.value)}
         />
+        <select
+          aria-label="Orden original"
+          className="min-h-11 w-full rounded-lg border px-3"
+          value={form.parentServiceOrderId || ""}
+          onChange={(event) => set("parentServiceOrderId", event.target.value)}
+        >
+          <option value="">Sin orden relacionada</option>
+          {orders.data?.items
+            .filter((item) =>
+              ["REQUIRES_QUOTE", "NOT_COMPLETED", "COMPLETED"].includes(
+                item.status,
+              ),
+            )
+            .map((item) => (
+              <option key={item._id} value={item._id}>
+                OS {item.externalOrderNumber}
+              </option>
+            ))}
+        </select>
         <textarea
           aria-label="Nota técnico"
           placeholder="Nota visible al técnico"
@@ -256,7 +287,7 @@ export function OrderManager() {
             Limpiar
           </button>
         </div>
-        <div className="mb-4 flex gap-2">
+        <div className="mb-4 grid gap-2 sm:grid-cols-2 xl:grid-cols-4">
           <input
             aria-label="Buscar OS"
             placeholder="Número OS"
@@ -282,6 +313,40 @@ export function OrderManager() {
               <option key={x}>{x}</option>
             ))}
           </select>
+          <select
+            aria-label="Filtrar por técnico"
+            className="min-h-11 rounded-lg border px-3"
+            value={technicianId}
+            onChange={(event) => {
+              setTechnicianId(event.target.value);
+              setPage(1);
+            }}
+          >
+            <option value="">Todos los técnicos</option>
+            {users.data?.items
+              .filter((item) => item.role === "TECHNICIAN" && item.active)
+              .map((item) => (
+                <option key={item._id} value={item._id}>
+                  {item.employeeId.firstName} {item.employeeId.lastName}
+                </option>
+              ))}
+          </select>
+          <select
+            aria-label="Filtrar por cliente"
+            className="min-h-11 rounded-lg border px-3"
+            value={customerFilter}
+            onChange={(event) => {
+              setCustomerFilter(event.target.value);
+              setPage(1);
+            }}
+          >
+            <option value="">Todos los clientes</option>
+            {customers.data?.items.map((item) => (
+              <option key={item._id} value={item._id}>
+                {item.companyName || `${item.firstName} ${item.lastName}`}
+              </option>
+            ))}
+          </select>
         </div>
         <ul className="divide-y rounded-xl border bg-white">
           {orders.data?.items.map((x) => (
@@ -302,6 +367,26 @@ export function OrderManager() {
             </li>
           ))}
         </ul>
+        <div className="mt-3 flex items-center justify-between">
+          <button
+            disabled={page === 1}
+            className="rounded border px-3 py-2 disabled:opacity-40"
+            onClick={() => setPage((value) => Math.max(1, value - 1))}
+          >
+            Anterior
+          </button>
+          <span className="text-sm">
+            Página {page} de{" "}
+            {Math.max(1, Math.ceil((orders.data?.total || 0) / 20))}
+          </span>
+          <button
+            disabled={page * 20 >= (orders.data?.total || 0)}
+            className="rounded border px-3 py-2 disabled:opacity-40"
+            onClick={() => setPage((value) => value + 1)}
+          >
+            Siguiente
+          </button>
+        </div>
       </section>
     </div>
   );

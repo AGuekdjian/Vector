@@ -4,21 +4,33 @@ import { connectDatabase } from "@/lib/db/mongoose";
 import { AppError } from "@/lib/errors/app-error";
 import { withApiHandler } from "@/lib/http/api-handler";
 import { requireUser } from "@/lib/permissions/authorize";
-import { parseJson } from "@/lib/validation/request";
+import { pagination, parseJson } from "@/lib/validation/request";
 import { recordAudit } from "@/modules/audit/audit.service";
 import { createUserSchema } from "@/modules/auth/auth.schemas";
 import { generateUniqueUsername } from "@/modules/auth/username";
 import { Employee } from "@/modules/employees/employee.model";
 import { User } from "@/modules/users/user.model";
-export const GET = withApiHandler(async () => {
+export const GET = withApiHandler(async (request) => {
   await requireUser(["OWNER", "ADMIN"]);
   await connectDatabase();
-  return NextResponse.json({
-    items: await User.find({})
+  const url = new URL(request.url);
+  const { page, limit, skip } = pagination(url.searchParams);
+  const filter =
+    url.searchParams.get("active") === "true" ? { active: true } : {};
+  const [items, total] = await Promise.all([
+    User.find(filter)
       .populate("employeeId", "firstName lastName active")
       .sort({ createdAt: -1 })
-      .limit(100)
+      .skip(skip)
+      .limit(limit)
       .lean(),
+    User.countDocuments(filter),
+  ]);
+  return NextResponse.json({
+    items,
+    total,
+    page,
+    limit,
   });
 });
 export const POST = withApiHandler(async (request, _context, { requestId }) => {

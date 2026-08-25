@@ -6,6 +6,7 @@ import Link from "next/link";
 export function CustomerManager() {
   const client = useQueryClient();
   const [q, setQ] = useState("");
+  const [page, setPage] = useState(1);
   const debouncedQ = useDebouncedValue(q);
   const [form, setForm] = useState({
     customerType: "PERSON",
@@ -16,10 +17,10 @@ export function CustomerManager() {
     subscriber: false,
   });
   const { data, isLoading } = useQuery({
-    queryKey: ["customers", debouncedQ],
+    queryKey: ["customers", debouncedQ, page],
     queryFn: async () => {
       const r = await fetch(
-        `/api/customers?q=${encodeURIComponent(debouncedQ)}`,
+        `/api/customers?q=${encodeURIComponent(debouncedQ)}&page=${page}&limit=20`,
       );
       if (!r.ok) throw new Error();
       return r.json();
@@ -133,7 +134,10 @@ export function CustomerManager() {
           placeholder="Buscar por nombre o teléfono"
           className="mb-4 min-h-11 w-full rounded-lg border px-3"
           value={q}
-          onChange={(e) => setQ(e.target.value)}
+          onChange={(e) => {
+            setQ(e.target.value);
+            setPage(1);
+          }}
         />
         {isLoading ? (
           <p>Cargando…</p>
@@ -154,6 +158,25 @@ export function CustomerManager() {
             ))}
           </ul>
         )}
+        <div className="mt-3 flex items-center justify-between">
+          <button
+            disabled={page === 1}
+            className="rounded border px-3 py-2 disabled:opacity-40"
+            onClick={() => setPage((value) => Math.max(1, value - 1))}
+          >
+            Anterior
+          </button>
+          <span className="text-sm">
+            Página {page} de {Math.max(1, Math.ceil((data?.total || 0) / 20))}
+          </span>
+          <button
+            disabled={page * 20 >= (data?.total || 0)}
+            className="rounded border px-3 py-2 disabled:opacity-40"
+            onClick={() => setPage((value) => value + 1)}
+          >
+            Siguiente
+          </button>
+        </div>
       </section>
     </div>
   );

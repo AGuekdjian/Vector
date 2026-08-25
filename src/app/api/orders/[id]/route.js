@@ -42,13 +42,13 @@ export const GET = withApiHandler(async (_request, { params }) => {
       "Orden no encontrada.",
       404,
     );
-  const systems = await InstalledSystem.find({
-    installationId: item.installationId._id,
-    active: true,
-  }).lean();
-  const technicalHistory =
+  const [systems, technicalHistory] = await Promise.all([
+    InstalledSystem.find({
+      installationId: item.installationId._id,
+      active: true,
+    }).lean(),
     actor.role === "TECHNICIAN"
-      ? await ServiceOrder.find({
+      ? ServiceOrder.find({
           _id: { $ne: item._id },
           installationId: item.installationId._id,
           active: true,
@@ -60,7 +60,8 @@ export const GET = withApiHandler(async (_request, { params }) => {
           .sort({ completedAt: -1 })
           .limit(10)
           .lean()
-      : [];
+      : Promise.resolve([]),
+  ]);
   return NextResponse.json({ item: { ...item, systems, technicalHistory } });
 });
 export const PATCH = withApiHandler(
