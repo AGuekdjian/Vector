@@ -13,20 +13,34 @@ import {
   signSession,
 } from "@/modules/auth/session";
 import { User } from "@/modules/users/user.model";
+import {
+  ADMIN_PASSWORD_PATTERN,
+  TECHNICIAN_PIN_PATTERN,
+} from "@/modules/auth/auth.schemas";
 
 const schema = z.object({
   currentPassword: z.string().min(4).max(128),
   newPassword: z.string().min(4).max(128),
 });
-const strongPassword =
-  /^(?=.*[a-z])(?=.*[A-Z])(?=.*\d)(?=.*[^A-Za-z\d]).{12,}$/;
 export const POST = withApiHandler(async (request, _context, { requestId }) => {
   const actor = await requireUser();
   const data = await parseJson(request, schema);
-  if (actor.role !== "TECHNICIAN" && !strongPassword.test(data.newPassword))
+  if (
+    actor.role === "TECHNICIAN" &&
+    !TECHNICIAN_PIN_PATTERN.test(data.newPassword)
+  )
+    throw new AppError(
+      "INVALID_PIN",
+      "El PIN técnico debe tener exactamente 4 dígitos.",
+      400,
+    );
+  if (
+    actor.role !== "TECHNICIAN" &&
+    !ADMIN_PASSWORD_PATTERN.test(data.newPassword)
+  )
     throw new AppError(
       "WEAK_PASSWORD",
-      "La contraseña debe tener 12 caracteres, mayúscula, minúscula, número y símbolo.",
+      "La contraseña debe tener al menos 10 caracteres, mayúscula, minúscula, número y símbolo.",
       400,
     );
   await connectDatabase();
