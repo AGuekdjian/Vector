@@ -20,7 +20,7 @@ Requiere Node.js 22 y MongoDB 7 o superior (MongoDB Atlas recomendado).
 1. Ejecute `npm ci`.
 2. Copie `.env.example` a `.env.local`.
 3. Defina `MONGODB_URI`, una `AUTH_SECRET` aleatoria de al menos 32 caracteres, `NEXT_PUBLIC_APP_NAME` y `NEXT_PUBLIC_BASE_URL`.
-4. Cree el primer propietario con `npm run seed:owner`, usando las variables de propietario de `.env.example`.
+4. Cree el primer propietario con `npm run seed:owner -- Nombre Apellido usuario "Contraseña!Segura123"`.
 5. Ejecute `npm run dev` y abra `http://localhost:3000`.
 
 No versione secretos ni `.env.local`. En Atlas use privilegios mínimos y restrinja el acceso de red.
@@ -40,6 +40,15 @@ El técnico debe iniciar sesión y abrir sus órdenes una vez con conexión. Las
 
 La primera prueba E2E descarga MongoDB. Puede elegir otra versión compatible con `MONGOMS_VERSION`.
 
+## Docker en Windows
+
+Docker Compose ejecuta la aplicación en modo producción y se conecta al `MONGODB_URI` de `.env.local`. MongoDB Atlas es externo al Compose y nunca es eliminado por los scripts.
+
+- Iniciar y esperar el healthcheck: `scripts\docker-start.cmd` o `npm run docker:up`.
+- Detener y eliminar contenedor, red, volúmenes efímeros e imagen de Vector: `scripts\docker-stop.cmd` o `npm run docker:down`.
+
+Docker Desktop debe estar iniciado. El script de limpieza usa el nombre de proyecto `vector`, por lo que no elimina recursos de otros proyectos ni modifica MongoDB Atlas.
+
 ## Arquitectura
 
 - `src/app`: App Router, páginas y endpoints HTTP.
@@ -56,6 +65,16 @@ La autorización y el aislamiento del técnico siempre se aplican en backend. La
 Importe el repositorio en Vercel, configure las variables de `.env.example` por entorno y use el dominio real en `NEXT_PUBLIC_BASE_URL`. Autorice el acceso de Vercel en Atlas y ejecute `npm run build` antes de publicar. `/api/health` comprueba aplicación y base de datos.
 
 En producción, la sesión usa cookies `HttpOnly`, `Secure` y `SameSite=Lax`. También se envían CSP, protección anti-iframe, MIME sniffing, política de referencia y permisos restringidos.
+
+El workflow `CI` valida cada push y pull request. Después de un CI exitoso en `main`, el workflow `CD` despliega el artefacto precompilado en Vercel. Configure estos secretos en GitHub:
+
+- `VERCEL_TOKEN`
+- `VERCEL_ORG_ID`
+- `VERCEL_PROJECT_ID`
+
+Cuando los tres secretos estén configurados, cree la variable de repositorio `ENABLE_VERCEL_DEPLOY=true`. Mientras no exista, CD queda omitido de forma segura en vez de producir un despliegue incompleto.
+
+Configure `MONGODB_URI`, `AUTH_SECRET`, `NEXT_PUBLIC_APP_NAME` y `NEXT_PUBLIC_BASE_URL` como variables del proyecto de Vercel. Nunca copie valores reales en `.env.example`.
 
 ## Problemas frecuentes
 
