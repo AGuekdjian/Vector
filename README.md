@@ -11,6 +11,8 @@ Aplicación web mobile-first para administrar clientes, instalaciones, sistemas 
 - El técnico solo accede a sus órdenes asignadas. Puede abrir Maps, iniciar/finalizar trabajos y actualizar sistemas.
 - Caché local, outbox idempotente, reintentos y conflictos visibles. No se guardan contraseñas ni sesiones en IndexedDB.
 - Auditoría, borrado lógico y logs estructurados que redactan datos sensibles.
+- Panel exclusivo de OWNER con usuario activo, versión, uptime, salud y latencia de MongoDB, fallas recientes y actividad auditada.
+- Interfaz responsive con navegación contextual, feedback de formularios y skeletons durante cargas.
 
 Quedan fuera deliberadamente inventario, tarjetas, fotos, firmas y WhatsApp.
 
@@ -60,6 +62,8 @@ Docker Desktop debe estar iniciado. El script de limpieza usa el nombre de proye
 - `tests`: pruebas unitarias, integración y E2E.
 
 La autorización y el aislamiento del técnico siempre se aplican en backend. Las operaciones offline llevan identificador y hash para que un reintento no duplique cambios.
+
+La revisión de cumplimiento se documenta en `docs/pdf-compliance-audit.md` y la revisión de carga/requests en `docs/performance-review.md`.
 
 ## Integración continua
 
