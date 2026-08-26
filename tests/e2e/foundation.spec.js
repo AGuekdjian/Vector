@@ -149,6 +149,47 @@ test("renders the application entry point", async ({ page }) => {
   await expect(page.getByRole("link", { name: "Ingresar" })).toBeVisible();
 });
 
+test("searches a customer and shows its address and service type in an order", async ({
+  page,
+}) => {
+  await loginApi(page.request, "nadmin", "Admin!123456789");
+  const suffix = Date.now();
+  const customerResponse = await page.request.post("/api/customers", {
+    data: {
+      customerType: "COMPANY",
+      companyName: `Cliente Buscable ${suffix}`,
+      customerNumber: `BUS-${suffix}`,
+      subscriberNumber: `AB-${suffix}`,
+      primaryPhone: "099555555",
+      address: "Rambla República 456",
+      department: "Montevideo",
+      subscriber: true,
+    },
+  });
+  expect(customerResponse.status()).toBe(201);
+  const customer = (await customerResponse.json()).item;
+  await page.request.post("/api/installations", {
+    data: {
+      customerId: customer._id,
+      name: "Casa",
+      address: "Rambla República 456",
+      department: "Montevideo",
+    },
+  });
+
+  await page.goto("/orders");
+  await page.getByLabel("Cliente", { exact: true }).fill(`BUS-${suffix}`);
+  await page
+    .getByRole("option")
+    .getByRole("button", { name: new RegExp(`Cliente Buscable ${suffix}`) })
+    .click();
+  await expect(page.getByText("Rambla República 456, Montevideo")).toBeVisible();
+  await expect(page.getByLabel("Lugar del servicio")).toContainText(
+    "Casa — Rambla República 456",
+  );
+  await expect(page.getByLabel("Tipo de servicio")).toHaveValue("MAINTENANCE");
+});
+
 test("preserves system history through retire and replace lifecycle", async ({
   request,
 }) => {
