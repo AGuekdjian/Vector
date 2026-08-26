@@ -93,7 +93,9 @@ export function TechnicianOrderDetail({ id }) {
         await syncOutbox();
         const stored = await getOperation(operation.operationId);
         if (stored?.status === "SYNCED") {
-          setMessage("Sincronizado");
+          setMessage(
+            kind === "COMPLETE_ORDER" ? "Orden sincronizada" : "Sincronizado",
+          );
           await client.invalidateQueries({ queryKey: ["orders", id] });
         } else if (stored?.status === "CONFLICT")
           setMessage(

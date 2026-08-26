@@ -290,7 +290,7 @@ test("admin creates an order and its technician completes it with traceability",
   const technician = users.find((user) => user.username === "atecnico");
   const orderResponse = await page.request.post("/api/orders", {
     data: {
-      externalOrderNumber: "EXIMIA-1001",
+      externalOrderNumber: `EXIMIA-${Date.now()}`,
       customerId: customer._id,
       installationId: installation._id,
       responsibleTechnicianId: technician._id,
@@ -308,23 +308,25 @@ test("admin creates an order and its technician completes it with traceability",
   await page.getByLabel("Contraseña o PIN").fill("Tech!123456789");
   await page.getByRole("button", { name: "Ingresar" }).click();
   await expect(page).toHaveURL(/technician\/orders/);
-  await page.getByText("Juan Pérez").click();
+  await page.locator(`a[href="/technician/orders/${order._id}"]`).click();
   await expect(
     page.getByRole("link", { name: "Abrir en Maps" }),
   ).toHaveAttribute("href", /google\.com\/maps/);
   await page.getByRole("button", { name: "INICIAR" }).click();
-  await expect(page.getByText("Sincronizado")).toBeVisible();
+  await expect(page.getByText("Sincronizado", { exact: true })).toBeVisible();
   await page.getByText(/ALARM: DSC 585/).click();
   const brand = page.getByLabel("brand", { exact: true });
   await brand.fill("Hikvision");
   await page.getByRole("button", { name: "Guardar datos técnicos" }).click();
-  await expect(page.getByText("Sincronizado")).toBeVisible();
+  await expect(page.getByText("Sincronizado", { exact: true })).toBeVisible();
   await page.getByRole("button", { name: "Realizada", exact: true }).click();
   await page
     .getByLabel("Observación")
     .fill("Se realizaron pruebas. Sistema operativo.");
   await page.getByRole("button", { name: "Confirmar resultado" }).click();
-  await expect(page.getByText("Sincronizado")).toBeVisible();
+  await expect(
+    page.getByText("Orden sincronizada", { exact: true }),
+  ).toBeVisible();
   await page.request.post("/api/auth/login", {
     data: { username: "nadmin", password: "Admin!123456789" },
   });
