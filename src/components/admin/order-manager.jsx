@@ -5,11 +5,24 @@ import { useState } from "react";
 import { useForm, useWatch } from "react-hook-form";
 import { useDebouncedValue } from "@/shared/hooks/use-debounced-value";
 import { orderCreateSchema } from "@/modules/service-orders/order.schemas";
+import { installationSchema } from "@/modules/installations/installation.schemas";
 import Link from "next/link";
 const get = async (url) => {
   const r = await fetch(url);
   if (!r.ok) throw new Error();
   return r.json();
+};
+const uruguayDate = (date = new Date()) => {
+  const parts = new Intl.DateTimeFormat("en-CA", {
+    timeZone: "America/Montevideo",
+    year: "numeric",
+    month: "2-digit",
+    day: "2-digit",
+  }).formatToParts(date);
+  const value = Object.fromEntries(
+    parts.map((part) => [part.type, part.value]),
+  );
+  return `${value.year}-${value.month}-${value.day}`;
 };
 export function OrderManager() {
   const qc = useQueryClient();
@@ -33,12 +46,22 @@ export function OrderManager() {
       responsibleTechnicianId: null,
       companionEmployeeId: null,
       vehicleId: null,
-      scheduledDate: new Date().toISOString().slice(0, 10),
+      scheduledDate: uruguayDate(),
       scheduledTime: "09:00",
+      sequence: "",
       workDescription: "",
       technicianNote: "",
       internalNote: "",
       parentServiceOrderId: null,
+    },
+  });
+  const placeForm = useForm({
+    resolver: zodResolver(installationSchema),
+    defaultValues: {
+      customerId: "",
+      name: "Dirección principal",
+      address: "",
+      department: "",
     },
   });
   const selectedCustomerId = useWatch({
@@ -84,6 +107,50 @@ export function OrderManager() {
     queryFn: () => get(`/api/installations?customerId=${selectedCustomerId}`),
     enabled: !!selectedCustomerId,
   });
+  const createPlace = useMutation({
+    mutationFn: async (data) => {
+      const response = await fetch("/api/installations", {
+        method: "POST",
+        headers: { "content-type": "application/json" },
+        body: JSON.stringify(data),
+      });
+      const body = await response.json();
+      if (!response.ok) throw new Error(body.error?.message);
+      return body.item;
+    },
+    onSuccess: (place) => {
+      qc.setQueryData(["installations", selectedCustomerId], (current) => ({
+        items: [...(current?.items || []), place],
+      }));
+      orderForm.setValue("installationId", place._id, {
+        shouldValidate: true,
+      });
+    },
+  });
+  const chooseCustomer = async (customer) => {
+    const name =
+      customer.companyName || `${customer.firstName} ${customer.lastName}`;
+    setSelectedCustomer(customer);
+    setCustomerSearch(name);
+    orderForm.setValue("customerId", customer._id, { shouldValidate: true });
+    orderForm.setValue("installationId", "");
+    placeForm.reset({
+      customerId: customer._id,
+      name: "Dirección principal",
+      address: customer.address || "",
+      department: customer.department || "",
+    });
+    try {
+      const places = await get(`/api/installations?customerId=${customer._id}`);
+      qc.setQueryData(["installations", customer._id], places);
+      if (places.items.length === 1)
+        orderForm.setValue("installationId", places.items[0]._id, {
+          shouldValidate: true,
+        });
+    } catch {
+      // The query renders its normal error state and the order stays unselected.
+    }
+  };
   const create = useMutation({
     mutationFn: async (data) => {
       const r = await fetch("/api/orders", {
@@ -100,7 +167,11 @@ export function OrderManager() {
       orderForm.reset({
         ...orderForm.getValues(),
         externalOrderNumber: "",
+        sequence: "",
         workDescription: "",
+        technicianNote: "",
+        internalNote: "",
+        parentServiceOrderId: null,
       });
     },
   });
@@ -120,7 +191,10 @@ export function OrderManager() {
           {...orderForm.register("externalOrderNumber")}
         />
         <div className="relative">
-          <label htmlFor="order-customer" className="mb-1 block text-sm font-medium">
+          <label
+            htmlFor="order-customer"
+            className="mb-1 block text-sm font-medium"
+          >
             Cliente
           </label>
           <input type="hidden" {...orderForm.register("customerId")} />
@@ -152,24 +226,15 @@ export function OrderManager() {
                   <button
                     type="button"
                     className="w-full px-3 py-2 text-left hover:bg-zinc-100"
-                    onClick={() => {
-                      const name =
-                        customer.companyName ||
-                        `${customer.firstName} ${customer.lastName}`;
-                      setSelectedCustomer(customer);
-                      setCustomerSearch(name);
-                      orderForm.setValue("customerId", customer._id, {
-                        shouldValidate: true,
-                      });
-                      orderForm.setValue("installationId", "");
-                    }}
+                    onClick={() => chooseCustomer(customer)}
                   >
                     <span className="block font-medium">
                       {customer.companyName ||
                         `${customer.firstName} ${customer.lastName}`}
                     </span>
                     <span className="block text-sm text-zinc-600">
-                      N.º {customer.customerNumber || "—"} · {customer.primaryPhone}
+                      N.º {customer.customerNumber || "—"} ·{" "}
+                      {customer.primaryPhone}
                     </span>
                   </button>
                 </li>
@@ -193,19 +258,82 @@ export function OrderManager() {
             )}
           </div>
         )}
-        <select
-          required
-          aria-label="Lugar del servicio"
-          className="min-h-11 w-full rounded-lg border px-3"
-          {...orderForm.register("installationId")}
-        >
-          <option value="">Lugar del servicio</option>
-          {installations.data?.items.map((x) => (
-            <option key={x._id} value={x._id}>
-              {x.name} — {x.address}
-            </option>
-          ))}
-        </select>
+        {selectedCustomer && (
+          <fieldset className="space-y-2 rounded-lg border p-3">
+            <legend className="px-1 text-sm font-semibold">
+              Dirección donde se realizará el trabajo
+            </legend>
+            <p className="text-xs text-zinc-600">
+              Un cliente puede tener varias ubicaciones: casa, empresa, depósito
+              o sucursal.
+            </p>
+            {installations.isLoading ? (
+              <p className="text-sm">Cargando direcciones…</p>
+            ) : installations.data?.items.length ? (
+              <select
+                required
+                aria-label="Dirección del servicio"
+                className="min-h-11 w-full rounded-lg border px-3"
+                aria-invalid={!!orderForm.formState.errors.installationId}
+                {...orderForm.register("installationId")}
+              >
+                <option value="">Seleccionar dirección</option>
+                {installations.data.items.map((place) => (
+                  <option key={place._id} value={place._id}>
+                    {place.name} — {place.address}
+                  </option>
+                ))}
+              </select>
+            ) : (
+              <div className="space-y-2 rounded-lg bg-amber-50 p-3">
+                <p className="text-sm font-medium">
+                  Este cliente todavía no tiene una ubicación de servicio.
+                </p>
+                <input type="hidden" {...placeForm.register("customerId")} />
+                <input
+                  aria-label="Nombre de la ubicación"
+                  placeholder="Casa, empresa, sucursal…"
+                  className="min-h-10 w-full rounded border px-2"
+                  {...placeForm.register("name")}
+                />
+                <input
+                  aria-label="Dirección de la ubicación"
+                  placeholder="Dirección"
+                  className="min-h-10 w-full rounded border px-2"
+                  {...placeForm.register("address")}
+                />
+                <input
+                  aria-label="Departamento de la ubicación"
+                  placeholder="Departamento"
+                  className="min-h-10 w-full rounded border px-2"
+                  {...placeForm.register("department")}
+                />
+                {createPlace.error && (
+                  <p role="alert" className="text-sm text-red-700">
+                    {createPlace.error.message}
+                  </p>
+                )}
+                <button
+                  type="button"
+                  disabled={createPlace.isPending}
+                  className="min-h-10 w-full rounded border border-red-800 px-3 text-red-800 disabled:opacity-60"
+                  onClick={placeForm.handleSubmit((data) =>
+                    createPlace.mutate(data),
+                  )}
+                >
+                  {createPlace.isPending
+                    ? "Guardando dirección…"
+                    : "Usar esta dirección para la orden"}
+                </button>
+              </div>
+            )}
+          </fieldset>
+        )}
+        {!selectedCustomer && (
+          <p className="rounded-lg bg-zinc-50 p-3 text-sm text-zinc-600">
+            Busca y selecciona un cliente para elegir la dirección del servicio.
+          </p>
+        )}
         <select
           required
           aria-label="Tipo de servicio"
@@ -234,6 +362,19 @@ export function OrderManager() {
             {...orderForm.register("scheduledTime")}
           />
         </div>
+        <label className="block text-sm">
+          Orden de recorrido (opcional)
+          <input
+            type="number"
+            min="0"
+            aria-label="Orden de recorrido"
+            placeholder="Ej.: 1"
+            className="mt-1 min-h-11 w-full rounded-lg border px-3"
+            {...orderForm.register("sequence", {
+              setValueAs: (value) => (value === "" ? undefined : Number(value)),
+            })}
+          />
+        </label>
         <select
           aria-label="Técnico"
           className="min-h-11 w-full rounded-lg border px-3"
@@ -315,13 +456,63 @@ export function OrderManager() {
           className="min-h-20 w-full rounded-lg border p-3"
           {...orderForm.register("technicianNote")}
         />
+        <textarea
+          aria-label="Nota interna"
+          placeholder="Nota interna (sólo OWNER y ADMIN)"
+          className="min-h-20 w-full rounded-lg border p-3"
+          {...orderForm.register("internalNote")}
+        />
+        {Object.keys(orderForm.formState.errors).length > 0 && (
+          <div
+            role="alert"
+            className="rounded-lg bg-red-50 p-3 text-sm text-red-800"
+          >
+            <p className="font-semibold">No se puede crear la orden:</p>
+            <ul className="mt-1 list-disc pl-5">
+              {orderForm.formState.errors.customerId && (
+                <li>Selecciona un cliente de los resultados de búsqueda.</li>
+              )}
+              {orderForm.formState.errors.installationId && (
+                <li>
+                  Selecciona o crea la dirección donde se hará el trabajo.
+                </li>
+              )}
+              {orderForm.formState.errors.externalOrderNumber && (
+                <li>Ingresa el número de OS de Eximia.</li>
+              )}
+              {orderForm.formState.errors.workDescription && (
+                <li>Describe el trabajo a realizar.</li>
+              )}
+              {orderForm.formState.errors.scheduledDate && (
+                <li>Revisa la fecha programada.</li>
+              )}
+              {orderForm.formState.errors.scheduledTime && (
+                <li>Revisa la hora programada.</li>
+              )}
+              {orderForm.formState.errors.sequence && (
+                <li>El orden de recorrido debe ser un número positivo.</li>
+              )}
+            </ul>
+          </div>
+        )}
+        {create.isSuccess && (
+          <p
+            role="status"
+            className="rounded-lg bg-emerald-50 p-3 text-sm text-emerald-800"
+          >
+            Orden creada correctamente.
+          </p>
+        )}
         {create.error && (
           <p role="alert" className="text-sm text-red-700">
             {create.error.message}
           </p>
         )}
-        <button className="min-h-11 w-full rounded-lg bg-red-800 font-semibold text-white">
-          Crear orden
+        <button
+          disabled={create.isPending}
+          className="min-h-11 w-full rounded-lg bg-red-800 font-semibold text-white disabled:opacity-60"
+        >
+          {create.isPending ? "Creando orden…" : "Crear orden"}
         </button>
       </form>
       <section>
@@ -341,8 +532,8 @@ export function OrderManager() {
                 const start = new Date(end);
                 start.setDate(start.getDate() - days + 1);
                 setRange({
-                  from: start.toISOString().slice(0, 10),
-                  to: end.toISOString().slice(0, 10),
+                  from: uruguayDate(start),
+                  to: uruguayDate(end),
                 });
               }}
             >

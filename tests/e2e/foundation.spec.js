@@ -167,15 +167,14 @@ test("searches a customer and shows its address and service type in an order", a
     },
   });
   expect(customerResponse.status()).toBe(201);
-  const customer = (await customerResponse.json()).item;
-  await page.request.post("/api/installations", {
-    data: {
-      customerId: customer._id,
-      name: "Casa",
-      address: "Rambla República 456",
-      department: "Montevideo",
+  const created = await customerResponse.json();
+  const customer = created.item;
+  await page.request.patch(
+    `/api/installations/${created.primaryInstallation._id}/active`,
+    {
+      data: { active: false },
     },
-  });
+  );
 
   await page.goto("/orders");
   await page.getByLabel("Cliente", { exact: true }).fill(`BUS-${suffix}`);
@@ -183,11 +182,27 @@ test("searches a customer and shows its address and service type in an order", a
     .getByRole("option")
     .getByRole("button", { name: new RegExp(`Cliente Buscable ${suffix}`) })
     .click();
-  await expect(page.getByText("Rambla República 456, Montevideo")).toBeVisible();
-  await expect(page.getByLabel("Lugar del servicio")).toContainText(
-    "Casa — Rambla República 456",
+  await expect(
+    page.getByText("Rambla República 456, Montevideo"),
+  ).toBeVisible();
+  await expect(
+    page.getByText("Este cliente todavía no tiene una ubicación de servicio."),
+  ).toBeVisible();
+  await page
+    .getByRole("button", { name: "Usar esta dirección para la orden" })
+    .click();
+  await expect(page.getByLabel("Dirección del servicio")).toContainText(
+    "Dirección principal — Rambla República 456",
   );
   await expect(page.getByLabel("Tipo de servicio")).toHaveValue("MAINTENANCE");
+
+  const orderNumber = `SEARCH-${suffix}`;
+  await page.getByLabel("Número OS").fill(orderNumber);
+  await page.getByLabel("Trabajo").fill("Mantenimiento de cámaras");
+  await page.getByRole("button", { name: "Crear orden" }).click();
+  await expect(
+    page.getByRole("link", { name: `OS ${orderNumber}` }),
+  ).toBeVisible();
 });
 
 test("preserves system history through retire and replace lifecycle", async ({

@@ -6,6 +6,7 @@ import { pagination, parseJson, safeRegex } from "@/lib/validation/request";
 import { recordAudit } from "@/modules/audit/audit.service";
 import { Customer } from "@/modules/customers/customer.model";
 import { customerSchema } from "@/modules/customers/customer.schemas";
+import { Installation } from "@/modules/installations/installation.model";
 
 export const GET = withApiHandler(async (request) => {
   await requireUser(["OWNER", "ADMIN"]);
@@ -37,12 +38,37 @@ export const GET = withApiHandler(async (request) => {
 export const POST = withApiHandler(async (request, _context, { requestId }) => {
   const actor = await requireUser(["OWNER", "ADMIN"]);
   const data = await parseJson(request, customerSchema);
-  await connectDatabase();
-  const customer = await Customer.create({
-    ...data,
-    createdBy: actor.id,
-    updatedBy: actor.id,
-  });
+  const connection = await connectDatabase();
+  const session = await connection.startSession();
+  let customer;
+  let installation;
+  try {
+    await session.withTransaction(async () => {
+      [customer] = await Customer.create(
+        [
+          {
+            ...data,
+            createdBy: actor.id,
+            updatedBy: actor.id,
+          },
+        ],
+        { session },
+      );
+      [installation] = await Installation.create(
+        [
+          {
+            customerId: customer._id,
+            name: "Dirección principal",
+            address: data.address,
+            department: data.department,
+          },
+        ],
+        { session },
+      );
+    });
+  } finally {
+    await session.endSession();
+  }
   await recordAudit({
     actorUserId: actor.id,
     action: "CUSTOMER_CREATED",
@@ -50,5 +76,16 @@ export const POST = withApiHandler(async (request, _context, { requestId }) => {
     entityId: customer._id,
     requestId,
   });
-  return NextResponse.json({ item: customer }, { status: 201 });
+  await recordAudit({
+    actorUserId: actor.id,
+    action: "INSTALLATION_CREATED",
+    entityType: "Installation",
+    entityId: installation._id,
+    requestId,
+    metadata: { source: "CUSTOMER_PRIMARY_ADDRESS" },
+  });
+  return NextResponse.json(
+    { item: customer, primaryInstallation: installation },
+    { status: 201 },
+  );
 });
