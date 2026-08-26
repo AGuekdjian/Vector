@@ -8,7 +8,7 @@ import { InstallationAdminCard } from "@/components/admin/installation-admin-car
 import { SystemAdminCard } from "@/components/admin/system-admin-card";
 import { installationSchema } from "@/modules/installations/installation.schemas";
 import { systemSchema } from "@/modules/systems/system.schemas";
-const clientSystemSchema = systemSchema.omit({ installedAt: true });
+const clientSystemSchema = systemSchema;
 const get = async (url) => {
   const r = await fetch(url);
   if (!r.ok) throw new Error((await r.json()).error?.message);
@@ -32,6 +32,7 @@ export function CustomerDetail({ id }) {
       imei: "",
       serialNumber: "",
       technicalNotes: "",
+      installedAt: "",
     },
   });
   const customer = useQuery({
@@ -60,8 +61,9 @@ export function CustomerDetail({ id }) {
         headers: { "content-type": "application/json" },
         body: JSON.stringify(data),
       });
-      if (!r.ok) throw new Error();
-      return r.json();
+      const body = await r.json();
+      if (!r.ok) throw new Error(body.error?.message);
+      return body;
     },
     onSuccess: () => {
       qc.invalidateQueries({ queryKey: ["installations", id] });
@@ -80,8 +82,9 @@ export function CustomerDetail({ id }) {
         headers: { "content-type": "application/json" },
         body: JSON.stringify(data),
       });
-      if (!r.ok) throw new Error();
-      return r.json();
+      const body = await r.json();
+      if (!r.ok) throw new Error(body.error?.message);
+      return body;
     },
     onSuccess: () => {
       qc.invalidateQueries({ queryKey: ["systems", selected] });
@@ -89,8 +92,11 @@ export function CustomerDetail({ id }) {
         ...systemForm.getValues(),
         brand: "",
         model: "",
+        description: "",
         imei: "",
         serialNumber: "",
+        technicalNotes: "",
+        installedAt: "",
       });
     },
   });
@@ -107,7 +113,9 @@ export function CustomerDetail({ id }) {
         </p>
         <p className="mt-1 text-zinc-700">
           Cliente N.º {item.customerNumber || "sin asignar"}
-          {item.subscriberNumber ? ` · Abonado N.º ${item.subscriberNumber}` : ""}
+          {item.subscriberNumber
+            ? ` · Abonado N.º ${item.subscriberNumber}`
+            : ""}
         </p>
         <p className="mt-1 text-zinc-700">
           {item.address || "Dirección principal no registrada"}
@@ -127,18 +135,16 @@ export function CustomerDetail({ id }) {
           noValidate
         >
           <h2 className="font-bold">Nuevo lugar de servicio</h2>
-          {["name", "address", "department"].map((field) => (
+          {[
+            ["name", "Nombre del lugar", "Nombre (Casa, Empresa…)"],
+            ["address", "Dirección del lugar", "Dirección"],
+            ["department", "Departamento", "Departamento"],
+          ].map(([field, label, placeholder]) => (
             <input
               key={field}
               required={field !== "department"}
-              aria-label={field}
-              placeholder={
-                {
-                  name: "Nombre (Casa, Empresa…)",
-                  address: "Dirección",
-                  department: "Departamento",
-                }[field]
-              }
+              aria-label={label}
+              placeholder={placeholder}
               className="min-h-11 w-full rounded-lg border px-3"
               {...installationForm.register(field)}
             />
@@ -146,6 +152,16 @@ export function CustomerDetail({ id }) {
           <button className="min-h-11 w-full rounded-lg bg-red-800 font-semibold text-white">
             Agregar lugar
           </button>
+          {Object.keys(installationForm.formState.errors).length > 0 && (
+            <p role="alert" className="text-sm text-red-700">
+              Revisa los datos del lugar.
+            </p>
+          )}
+          {createInstallation.error && (
+            <p role="alert" className="text-sm text-red-700">
+              {createInstallation.error.message}
+            </p>
+          )}
         </form>
         <div>
           <h2 className="mb-3 font-bold">Lugares de servicio</h2>
@@ -185,23 +201,46 @@ export function CustomerDetail({ id }) {
                   ))}
                 </select>
                 {[
-                  "brand",
-                  "model",
-                  "imei",
-                  "serialNumber",
-                  "technicalNotes",
-                ].map((field) => (
+                  ["brand", "Marca", "text"],
+                  ["model", "Modelo", "text"],
+                  ["imei", "IMEI", "text"],
+                  ["serialNumber", "Número de serie", "text"],
+                  ["installedAt", "Fecha de instalación", "date"],
+                ].map(([field, label, type]) => (
                   <input
                     key={field}
-                    aria-label={field}
-                    placeholder={field}
+                    type={type}
+                    aria-label={label}
+                    placeholder={type === "date" ? undefined : label}
                     className="min-h-10 w-full rounded border px-2"
                     {...systemForm.register(field)}
                   />
                 ))}
+                <textarea
+                  aria-label="Descripción del sistema"
+                  placeholder="Descripción del sistema"
+                  className="min-h-20 w-full rounded border p-2"
+                  {...systemForm.register("description")}
+                />
+                <textarea
+                  aria-label="Observaciones técnicas"
+                  placeholder="Observaciones técnicas"
+                  className="min-h-20 w-full rounded border p-2"
+                  {...systemForm.register("technicalNotes")}
+                />
                 <button className="min-h-10 w-full rounded bg-red-800 text-white">
                   Guardar sistema
                 </button>
+                {Object.keys(systemForm.formState.errors).length > 0 && (
+                  <p role="alert" className="text-sm text-red-700">
+                    Revisa los datos del sistema.
+                  </p>
+                )}
+                {createSystem.error && (
+                  <p role="alert" className="text-sm text-red-700">
+                    {createSystem.error.message}
+                  </p>
+                )}
               </form>
               <ul className="divide-y rounded-xl border bg-white">
                 {systems.data?.items.map((x) => (

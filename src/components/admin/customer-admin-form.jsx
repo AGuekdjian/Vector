@@ -71,20 +71,20 @@ export function CustomerAdminForm({ customer, onSaved }) {
         onSubmit={handleSubmit(save)}
       >
         {[
-          "firstName",
-          "lastName",
-          "companyName",
-          "customerNumber",
-          "subscriberNumber",
-          "primaryPhone",
-          "secondaryPhone",
-          "email",
-          "address",
-          "department",
-          "paymentMethod",
-        ].map((field) => (
+          ["firstName", "Nombre"],
+          ["lastName", "Apellido"],
+          ["companyName", "Razón social"],
+          ["customerNumber", "Número de cliente"],
+          ["subscriberNumber", "Número de abonado"],
+          ["primaryPhone", "Teléfono principal"],
+          ["secondaryPhone", "Teléfono secundario"],
+          ["email", "Correo electrónico"],
+          ["address", "Dirección principal"],
+          ["department", "Departamento"],
+          ["paymentMethod", "Forma de pago"],
+        ].map(([field, label]) => (
           <label key={field} className="text-sm">
-            {field}
+            {label}
             <input
               className="mt-1 min-h-10 w-full rounded border px-2"
               aria-invalid={!!errors[field]}
