@@ -7,9 +7,10 @@ import {
   initializeOfflineIdentity,
   replaceCachedOrders,
 } from "@/offline/indexed-db";
+import { toUruguayDateInput } from "@/shared/date";
 async function loadOrders() {
   try {
-    const today = new Date().toISOString().slice(0, 10);
+    const today = toUruguayDateInput();
     const response = await fetch(`/api/orders/snapshot?date=${today}`);
     if (!response.ok) throw new Error();
     const body = await response.json();

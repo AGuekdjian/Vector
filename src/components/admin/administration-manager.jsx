@@ -4,6 +4,7 @@ import { zodResolver } from "@hookform/resolvers/zod";
 import { useForm, useWatch } from "react-hook-form";
 import { z } from "zod";
 import { createUserSchema } from "@/modules/auth/auth.schemas";
+import { CardSkeleton } from "@/components/ui/skeleton";
 const employeeSchema = z.object({
   firstName: z.string().trim().min(1).max(80),
   lastName: z.string().trim().min(1).max(80),
@@ -105,9 +106,20 @@ export function AdministrationManager() {
     await patch(`/api/users/${item._id}/role`, { role });
     qc.invalidateQueries({ queryKey: ["users"] });
   };
+  if (
+    employees.isLoading ||
+    vehicles.isLoading ||
+    users.isLoading ||
+    reasons.isLoading
+  )
+    return (
+      <div className="grid gap-5 lg:grid-cols-3">
+        <CardSkeleton count={4} />
+      </div>
+    );
   return (
     <div className="grid gap-5 lg:grid-cols-3">
-      <section className="rounded-xl border bg-white p-4">
+      <section className="surface-card p-5">
         <h2 className="font-bold">Empleados</h2>
         <form
           className="mt-3 space-y-2"
@@ -153,7 +165,7 @@ export function AdministrationManager() {
           ))}
         </ul>
       </section>
-      <section className="rounded-xl border bg-white p-4">
+      <section className="surface-card p-5">
         <h2 className="font-bold">Usuarios</h2>
         <form
           className="mt-3 space-y-2"
@@ -240,7 +252,7 @@ export function AdministrationManager() {
           ))}
         </ul>
       </section>
-      <section className="rounded-xl border bg-white p-4">
+      <section className="surface-card p-5">
         <h2 className="font-bold">Vehículos</h2>
         <form
           className="mt-3 flex gap-2"
@@ -277,7 +289,7 @@ export function AdministrationManager() {
           ))}
         </ul>
       </section>
-      <section className="rounded-xl border bg-white p-4 lg:col-span-3">
+      <section className="surface-card p-5 lg:col-span-3">
         <h2 className="font-bold">Motivos de orden no realizada</h2>
         <form
           className="mt-3 flex gap-2"

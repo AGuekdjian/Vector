@@ -4,7 +4,7 @@ export default function Page() {
   return (
     <>
       <AppHeader technician />
-      <main className="mx-auto w-full max-w-md flex-1 p-4">
+      <main className="page-container max-w-md">
         <ChangePasswordForm />
       </main>
     </>

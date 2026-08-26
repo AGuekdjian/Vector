@@ -196,7 +196,7 @@ export function AdminOrderDetail({ id }) {
   const order = orderQuery.data.item;
   return (
     <div className="space-y-5">
-      <section className="rounded-xl border bg-white p-5">
+      <section className="surface-card p-5">
         <div className="flex flex-wrap items-start justify-between gap-3">
           <div>
             <p className="text-sm text-zinc-500">Orden de servicio</p>

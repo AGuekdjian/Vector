@@ -6,6 +6,7 @@ import { zodResolver } from "@hookform/resolvers/zod";
 import { useDebouncedValue } from "@/shared/hooks/use-debounced-value";
 import { customerSchema } from "@/modules/customers/customer.schemas";
 import Link from "next/link";
+import { ListSkeleton } from "@/components/ui/skeleton";
 export function CustomerManager() {
   const client = useQueryClient();
   const [q, setQ] = useState("");
@@ -50,6 +51,7 @@ export function CustomerManager() {
       if (!r.ok) throw new Error();
       return r.json();
     },
+    placeholderData: (previous) => previous,
   });
   const create = useMutation({
     mutationFn: async (data) => {
@@ -89,7 +91,7 @@ export function CustomerManager() {
     <div className="grid gap-6 lg:grid-cols-[360px_1fr]">
       <form
         onSubmit={handleSubmit((data) => create.mutate(data))}
-        className="space-y-3 rounded-xl border bg-white p-4"
+        className="surface-card space-y-3 p-5"
       >
         <h2 className="font-bold">Nuevo cliente</h2>
         <select
@@ -247,9 +249,9 @@ export function CustomerManager() {
           }}
         />
         {isLoading ? (
-          <p>Cargando…</p>
+          <ListSkeleton count={6} />
         ) : (
-          <ul className="divide-y rounded-xl border bg-white">
+          <ul className="surface-card divide-y divide-zinc-100">
             {data?.items.map((item) => (
               <li key={item._id} className="p-4 font-medium">
                 <Link

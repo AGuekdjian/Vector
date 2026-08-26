@@ -5,11 +5,12 @@ export default function TechnicianOrdersPage() {
   return (
     <>
       <AppHeader technician />
-      <main className="mx-auto w-full max-w-xl flex-1 p-4">
-        <h1 className="mb-1 text-2xl font-bold">Mis órdenes</h1>
-        <p className="mb-5 text-sm font-semibold uppercase tracking-wide text-red-800">
-          Hoy
-        </p>
+      <main className="page-container max-w-xl">
+        <header className="page-title">
+          <p className="eyebrow">Agenda de hoy</p>
+          <h1>Mis órdenes</h1>
+          <p>Información disponible también sin conexión.</p>
+        </header>
         <TechnicianOrderList />
       </main>
     </>

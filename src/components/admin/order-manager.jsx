@@ -7,22 +7,12 @@ import { useDebouncedValue } from "@/shared/hooks/use-debounced-value";
 import { orderCreateSchema } from "@/modules/service-orders/order.schemas";
 import { installationSchema } from "@/modules/installations/installation.schemas";
 import Link from "next/link";
+import { ListSkeleton } from "@/components/ui/skeleton";
+import { toUruguayDateInput } from "@/shared/date";
 const get = async (url) => {
   const r = await fetch(url);
   if (!r.ok) throw new Error();
   return r.json();
-};
-const uruguayDate = (date = new Date()) => {
-  const parts = new Intl.DateTimeFormat("en-CA", {
-    timeZone: "America/Montevideo",
-    year: "numeric",
-    month: "2-digit",
-    day: "2-digit",
-  }).formatToParts(date);
-  const value = Object.fromEntries(
-    parts.map((part) => [part.type, part.value]),
-  );
-  return `${value.year}-${value.month}-${value.day}`;
 };
 export function OrderManager() {
   const qc = useQueryClient();
@@ -35,6 +25,7 @@ export function OrderManager() {
   const [customerFilter, setCustomerFilter] = useState("");
   const [customerSearch, setCustomerSearch] = useState("");
   const [selectedCustomer, setSelectedCustomer] = useState(null);
+  const [addingPlace, setAddingPlace] = useState(false);
   const debouncedCustomerSearch = useDebouncedValue(customerSearch);
   const orderForm = useForm({
     resolver: zodResolver(orderCreateSchema),
@@ -46,7 +37,7 @@ export function OrderManager() {
       responsibleTechnicianId: null,
       companionEmployeeId: null,
       vehicleId: null,
-      scheduledDate: uruguayDate(),
+      scheduledDate: toUruguayDateInput(),
       scheduledTime: "09:00",
       sequence: "",
       workDescription: "",
@@ -82,6 +73,7 @@ export function OrderManager() {
       get(
         `/api/orders?status=${status}&number=${encodeURIComponent(debouncedNumber)}&dateFrom=${range.from}&dateTo=${range.to}&technicianId=${technicianId}&customerId=${customerFilter}&page=${page}&limit=20`,
       ),
+    placeholderData: (previous) => previous,
   });
   const customers = useQuery({
     queryKey: ["customers-select", debouncedCustomerSearch],
@@ -106,6 +98,7 @@ export function OrderManager() {
     queryKey: ["installations", selectedCustomerId],
     queryFn: () => get(`/api/installations?customerId=${selectedCustomerId}`),
     enabled: !!selectedCustomerId,
+    staleTime: 2 * 60_000,
   });
   const createPlace = useMutation({
     mutationFn: async (data) => {
@@ -125,6 +118,7 @@ export function OrderManager() {
       orderForm.setValue("installationId", place._id, {
         shouldValidate: true,
       });
+      setAddingPlace(false);
     },
   });
   const chooseCustomer = async (customer) => {
@@ -134,6 +128,7 @@ export function OrderManager() {
     setCustomerSearch(name);
     orderForm.setValue("customerId", customer._id, { shouldValidate: true });
     orderForm.setValue("installationId", "");
+    setAddingPlace(false);
     placeForm.reset({
       customerId: customer._id,
       name: "Dirección principal",
@@ -141,8 +136,11 @@ export function OrderManager() {
       department: customer.department || "",
     });
     try {
-      const places = await get(`/api/installations?customerId=${customer._id}`);
-      qc.setQueryData(["installations", customer._id], places);
+      const places = await qc.fetchQuery({
+        queryKey: ["installations", customer._id],
+        queryFn: () => get(`/api/installations?customerId=${customer._id}`),
+        staleTime: 2 * 60_000,
+      });
       if (places.items.length === 1)
         orderForm.setValue("installationId", places.items[0]._id, {
           shouldValidate: true,
@@ -178,7 +176,7 @@ export function OrderManager() {
   return (
     <div className="grid gap-6 xl:grid-cols-[420px_1fr]">
       <form
-        className="space-y-3 rounded-xl border bg-white p-4"
+        className="surface-card space-y-3 p-5"
         onSubmit={orderForm.handleSubmit((data) => create.mutate(data))}
         noValidate
       >
@@ -269,25 +267,45 @@ export function OrderManager() {
             </p>
             {installations.isLoading ? (
               <p className="text-sm">Cargando direcciones…</p>
-            ) : installations.data?.items.length ? (
-              <select
-                required
-                aria-label="Dirección del servicio"
-                className="min-h-11 w-full rounded-lg border px-3"
-                aria-invalid={!!orderForm.formState.errors.installationId}
-                {...orderForm.register("installationId")}
-              >
-                <option value="">Seleccionar dirección</option>
-                {installations.data.items.map((place) => (
-                  <option key={place._id} value={place._id}>
-                    {place.name} — {place.address}
-                  </option>
-                ))}
-              </select>
+            ) : installations.data?.items.length && !addingPlace ? (
+              <div className="space-y-2">
+                <select
+                  required
+                  aria-label="Dirección del servicio"
+                  className="min-h-11 w-full rounded-lg border px-3"
+                  aria-invalid={!!orderForm.formState.errors.installationId}
+                  {...orderForm.register("installationId")}
+                >
+                  <option value="">Seleccionar dirección</option>
+                  {installations.data.items.map((place) => (
+                    <option key={place._id} value={place._id}>
+                      {place.name} — {place.address}
+                    </option>
+                  ))}
+                </select>
+                <button
+                  type="button"
+                  className="min-h-10 w-full rounded-lg border border-zinc-300 bg-white px-3 text-sm font-medium text-zinc-700 hover:border-red-800 hover:text-red-800"
+                  onClick={() => {
+                    setAddingPlace(true);
+                    orderForm.setValue("installationId", "");
+                    placeForm.reset({
+                      customerId: selectedCustomer._id,
+                      name: "Otra ubicación",
+                      address: selectedCustomer.address || "",
+                      department: selectedCustomer.department || "",
+                    });
+                  }}
+                >
+                  Usar otra dirección
+                </button>
+              </div>
             ) : (
               <div className="space-y-2 rounded-lg bg-amber-50 p-3">
                 <p className="text-sm font-medium">
-                  Este cliente todavía no tiene una ubicación de servicio.
+                  {installations.data?.items.length
+                    ? "Edita la dirección tomada del cliente y guárdala para esta orden."
+                    : "Este cliente todavía no tiene una ubicación de servicio."}
                 </p>
                 <input type="hidden" {...placeForm.register("customerId")} />
                 <input
@@ -325,6 +343,21 @@ export function OrderManager() {
                     ? "Guardando dirección…"
                     : "Usar esta dirección para la orden"}
                 </button>
+                {!!installations.data?.items.length && (
+                  <button
+                    type="button"
+                    className="min-h-10 w-full rounded px-3 text-sm text-zinc-600"
+                    onClick={() => {
+                      setAddingPlace(false);
+                      const first = installations.data.items[0];
+                      orderForm.setValue("installationId", first._id, {
+                        shouldValidate: true,
+                      });
+                    }}
+                  >
+                    Cancelar y usar la dirección guardada
+                  </button>
+                )}
               </div>
             )}
           </fieldset>
@@ -532,8 +565,8 @@ export function OrderManager() {
                 const start = new Date(end);
                 start.setDate(start.getDate() - days + 1);
                 setRange({
-                  from: uruguayDate(start),
-                  to: uruguayDate(end),
+                  from: toUruguayDateInput(start),
+                  to: toUruguayDateInput(end),
                 });
               }}
             >
@@ -616,34 +649,38 @@ export function OrderManager() {
             ))}
           </select>
         </div>
-        <ul className="divide-y rounded-xl border bg-white">
-          {orders.data?.items.map((x) => (
-            <li key={x._id} className="p-4">
-              <div className="flex justify-between">
-                <Link
-                  className="font-bold text-red-800 hover:underline"
-                  href={`/orders/${x._id}`}
-                >
-                  OS {x.externalOrderNumber}
-                </Link>
-                <span>{x.status}</span>
-              </div>
-              <p className="mt-1 text-sm text-zinc-600">
-                {x.customerId?.companyName ||
-                  `${x.customerId?.firstName || ""} ${x.customerId?.lastName || ""}`}
-                {` · ${
-                  {
-                    INSTALLATION: "Instalación",
-                    MAINTENANCE: "Mantenimiento",
-                    REPAIR: "Reparación",
-                    INSPECTION: "Inspección",
-                    OTHER: "Otro",
-                  }[x.serviceType] || "Mantenimiento"
-                }`}
-              </p>
-            </li>
-          ))}
-        </ul>
+        {orders.isLoading ? (
+          <ListSkeleton count={7} />
+        ) : (
+          <ul className="surface-card divide-y divide-zinc-100">
+            {orders.data?.items.map((x) => (
+              <li key={x._id} className="p-4">
+                <div className="flex justify-between">
+                  <Link
+                    className="font-bold text-red-800 hover:underline"
+                    href={`/orders/${x._id}`}
+                  >
+                    OS {x.externalOrderNumber}
+                  </Link>
+                  <span>{x.status}</span>
+                </div>
+                <p className="mt-1 text-sm text-zinc-600">
+                  {x.customerId?.companyName ||
+                    `${x.customerId?.firstName || ""} ${x.customerId?.lastName || ""}`}
+                  {` · ${
+                    {
+                      INSTALLATION: "Instalación",
+                      MAINTENANCE: "Mantenimiento",
+                      REPAIR: "Reparación",
+                      INSPECTION: "Inspección",
+                      OTHER: "Otro",
+                    }[x.serviceType] || "Mantenimiento"
+                  }`}
+                </p>
+              </li>
+            ))}
+          </ul>
+        )}
         <div className="mt-3 flex items-center justify-between">
           <button
             disabled={page === 1}

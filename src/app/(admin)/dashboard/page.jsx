@@ -4,8 +4,12 @@ export default function Page() {
   return (
     <>
       <AppHeader />
-      <main className="mx-auto w-full max-w-7xl flex-1 p-4 sm:p-6">
-        <h1 className="mb-6 text-2xl font-bold">Resumen operativo</h1>
+      <main className="page-container">
+        <header className="page-title">
+          <p className="eyebrow">Operación</p>
+          <h1>Resumen operativo</h1>
+          <p>Una vista rápida del volumen y resultado de las órdenes.</p>
+        </header>
         <Dashboard />
       </main>
     </>

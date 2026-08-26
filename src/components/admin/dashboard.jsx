@@ -1,5 +1,6 @@
 "use client";
 import { useQuery } from "@tanstack/react-query";
+import { CardSkeleton } from "@/components/ui/skeleton";
 export function Dashboard() {
   const { data, isLoading } = useQuery({
     queryKey: ["statistics"],
@@ -21,19 +22,16 @@ export function Dashboard() {
     : [];
   return (
     <div className="grid gap-3 sm:grid-cols-2 lg:grid-cols-3">
-      {isLoading
-        ? [1, 2, 3].map((n) => (
-            <div
-              key={n}
-              className="h-28 animate-pulse rounded-xl bg-zinc-200"
-            />
-          ))
-        : cards.map((c) => (
-            <article key={c.label} className="rounded-xl border bg-white p-5">
-              <p className="text-sm text-zinc-600">{c.label}</p>
-              <p className="mt-2 text-3xl font-bold">{c.value}</p>
-            </article>
-          ))}
+      {isLoading ? (
+        <CardSkeleton count={6} />
+      ) : (
+        cards.map((c) => (
+          <article key={c.label} className="metric-card">
+            <p className="text-sm text-zinc-600">{c.label}</p>
+            <p className="mt-2 text-3xl font-bold">{c.value}</p>
+          </article>
+        ))
+      )}
     </div>
   );
 }

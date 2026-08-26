@@ -104,7 +104,7 @@ export function CustomerDetail({ id }) {
   const item = customer.data?.item;
   return (
     <div className="space-y-6">
-      <section className="rounded-xl border bg-white p-5">
+      <section className="surface-card p-5">
         <h1 className="text-2xl font-bold">
           {item.companyName || `${item.firstName} ${item.lastName}`}
         </h1>
@@ -128,7 +128,7 @@ export function CustomerDetail({ id }) {
       </section>
       <section className="grid gap-5 lg:grid-cols-[340px_1fr]">
         <form
-          className="space-y-3 rounded-xl border bg-white p-4"
+          className="surface-card space-y-3 p-4"
           onSubmit={installationForm.handleSubmit((data) =>
             createInstallation.mutate(data),
           )}

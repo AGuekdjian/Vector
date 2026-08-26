@@ -5,7 +5,7 @@ export default async function Page({ params }) {
   return (
     <>
       <AppHeader technician />
-      <main className="mx-auto w-full max-w-xl flex-1 bg-zinc-100 p-4">
+      <main className="page-container max-w-xl">
         <TechnicianOrderDetail id={id} />
       </main>
     </>

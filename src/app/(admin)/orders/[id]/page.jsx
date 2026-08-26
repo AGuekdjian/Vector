@@ -5,7 +5,7 @@ export default async function Page({ params }) {
   return (
     <>
       <AppHeader />
-      <main className="mx-auto w-full max-w-5xl flex-1 p-4 sm:p-6">
+      <main className="page-container max-w-5xl">
         <AdminOrderDetail id={id} />
       </main>
     </>

@@ -4,8 +4,12 @@ export default function Page() {
   return (
     <>
       <AppHeader />
-      <main className="mx-auto w-full max-w-7xl flex-1 p-4 sm:p-6">
-        <h1 className="mb-6 text-2xl font-bold">Órdenes de servicio</h1>
+      <main className="page-container">
+        <header className="page-title">
+          <p className="eyebrow">Planificación</p>
+          <h1>Órdenes de servicio</h1>
+          <p>Crea, asigna y consulta el estado de cada visita técnica.</p>
+        </header>
         <OrderManager />
       </main>
     </>

@@ -4,8 +4,12 @@ export default function Page() {
   return (
     <>
       <AppHeader />
-      <main className="mx-auto w-full max-w-7xl flex-1 p-4 sm:p-6">
-        <h1 className="mb-6 text-2xl font-bold">Clientes</h1>
+      <main className="page-container">
+        <header className="page-title">
+          <p className="eyebrow">Directorio</p>
+          <h1>Clientes</h1>
+          <p>Datos administrativos, ubicaciones, sistemas e historial.</p>
+        </header>
         <CustomerManager />
       </main>
     </>
