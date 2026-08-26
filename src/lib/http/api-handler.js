@@ -3,6 +3,8 @@ import { NextResponse } from "next/server";
 import { normalizeError } from "@/lib/errors/app-error";
 import { log } from "@/lib/logger/logger";
 import { AppError } from "@/lib/errors/app-error";
+import { connectDatabase } from "@/lib/db/mongoose";
+import { SystemEvent } from "@/modules/operations/system-event.model";
 
 const firstForwardedValue = (value) => value?.split(",", 1)[0].trim();
 
@@ -58,14 +60,31 @@ export function withApiHandler(handler) {
       return response;
     } catch (caught) {
       const error = normalizeError(caught);
+      const durationMs = Math.round(performance.now() - startedAt);
+      const path = new URL(request.url).pathname;
       log("error", error.message, {
         requestId,
         code: error.code,
         error: caught instanceof Error ? caught.name : "UnknownError",
         method: request.method,
-        path: new URL(request.url).pathname,
-        durationMs: Math.round(performance.now() - startedAt),
+        path,
+        durationMs,
       });
+      try {
+        await connectDatabase();
+        await SystemEvent.create({
+          level: error.status >= 500 ? "ERROR" : "WARNING",
+          message: error.message,
+          code: error.code,
+          requestId,
+          method: request.method,
+          path,
+          status: error.status,
+          durationMs,
+        });
+      } catch {
+        // Console logging remains available if persistence itself is unavailable.
+      }
       return NextResponse.json(
         {
           error: {

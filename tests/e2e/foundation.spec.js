@@ -141,6 +141,28 @@ test("owner creates an administrator and the administrator creates a technician"
   expect(forbiddenAdminResponse.status()).toBe(403);
 });
 
+test("only owner can inspect application and database health", async ({
+  request,
+}) => {
+  await loginApi(request, "nadmin", "Admin!123456789");
+  expect((await request.get("/api/owner/system-status")).status()).toBe(403);
+  await request.post("/api/auth/logout");
+  await loginApi(request, "oowner", "Owner!123456789");
+  const response = await request.get("/api/owner/system-status");
+  expect(response.status()).toBe(200);
+  const status = await response.json();
+  expect(status.status).toBe("ok");
+  expect(status.database.status).toBe("connected");
+  expect(status.version).toBeTruthy();
+  expect(status.counters).toEqual(
+    expect.objectContaining({
+      failuresLast24Hours: expect.any(Number),
+      warningsLast24Hours: expect.any(Number),
+      auditEventsLast24Hours: expect.any(Number),
+    }),
+  );
+});
+
 test("renders the application entry point", async ({ page }) => {
   await page.goto("/");
   await expect(

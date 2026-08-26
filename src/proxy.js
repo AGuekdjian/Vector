@@ -15,6 +15,7 @@ export const config = {
     "/users/:path*",
     "/vehicles/:path*",
     "/audit/:path*",
+    "/owner/:path*",
     "/technician/:path*",
   ],
 };
