@@ -18,7 +18,7 @@ const schema = new mongoose.Schema(
     description: { type: String, maxlength: 2000 },
     technicalNotes: { type: String, maxlength: 4000 },
     installedAt: Date,
-    imei: { type: String, trim: true, maxlength: 100 },
+    imei: { type: String, trim: true },
     serialNumber: { type: String, trim: true, maxlength: 200 },
     status: {
       type: String,

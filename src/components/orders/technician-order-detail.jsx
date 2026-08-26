@@ -17,6 +17,7 @@ const completionFormSchema = z
   .object({
     result: z.enum(["COMPLETED", "REQUIRES_QUOTE", "NOT_COMPLETED"]),
     observation: z.string().trim().max(4000),
+    quoteDetails: z.string().trim().max(4000).optional(),
     notCompletedReasonId: z.string().optional(),
   })
   .superRefine((data, context) => {
@@ -31,6 +32,15 @@ const completionFormSchema = z
         code: "custom",
         path: ["notCompletedReasonId"],
         message: "Selecciona un motivo.",
+      });
+    if (
+      data.result === "REQUIRES_QUOTE" &&
+      (data.quoteDetails?.length || 0) < 3
+    )
+      context.addIssue({
+        code: "custom",
+        path: ["quoteDetails"],
+        message: "Indica qué debe cotizarse.",
       });
   });
 async function fetchOrder(id) {
@@ -60,6 +70,7 @@ export function TechnicianOrderDetail({ id }) {
     defaultValues: {
       result: undefined,
       observation: "",
+      quoteDetails: "",
       notCompletedReasonId: "",
     },
   });
@@ -207,7 +218,8 @@ export function TechnicianOrderDetail({ id }) {
       <section className="rounded-xl bg-white p-4">
         <h2 className="font-bold">Trabajo a realizar</h2>
         <p className="mt-2 font-medium">
-          Tipo: {{
+          Tipo:{" "}
+          {{
             INSTALLATION: "Instalación",
             MAINTENANCE: "Mantenimiento",
             REPAIR: "Reparación",
@@ -239,7 +251,7 @@ export function TechnicianOrderDetail({ id }) {
               result: data.result,
               observation: data.observation,
               ...(data.result === "REQUIRES_QUOTE"
-                ? { quoteDetails: data.observation }
+                ? { quoteDetails: data.quoteDetails }
                 : {}),
               ...(data.result === "NOT_COMPLETED"
                 ? { notCompletedReasonId: data.notCompletedReasonId }
@@ -289,6 +301,19 @@ export function TechnicianOrderDetail({ id }) {
                 className="min-h-28 w-full rounded-lg border p-3"
                 {...completionForm.register("observation")}
               />
+              {mode === "REQUIRES_QUOTE" && (
+                <>
+                  <label className="block font-medium" htmlFor="quote-details">
+                    Qué debe cotizarse
+                  </label>
+                  <textarea
+                    id="quote-details"
+                    className="min-h-28 w-full rounded-lg border p-3"
+                    placeholder="Equipos, instalación y programación necesarios"
+                    {...completionForm.register("quoteDetails")}
+                  />
+                </>
+              )}
               <button
                 type="submit"
                 disabled={isMutating}

@@ -13,7 +13,7 @@ export const systemSchema = z.object({
   description: optional(2000),
   technicalNotes: optional(4000),
   installedAt: optionalDate,
-  imei: optional(100),
+  imei: z.string().trim().optional().or(z.literal("")),
   serialNumber: optional(200),
 });
 export const systemUpdateSchema = systemSchema

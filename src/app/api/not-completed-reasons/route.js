@@ -6,9 +6,30 @@ import { requireUser } from "@/lib/permissions/authorize";
 import { parseJson } from "@/lib/validation/request";
 import { recordAudit } from "@/modules/audit/audit.service";
 import { NotCompletedReason } from "@/modules/service-orders/not-completed-reason.model";
+const defaultReasons = [
+  "Cliente ausente",
+  "Cliente no puede recibir al técnico",
+  "Cliente solicita recoordinar",
+  "No fue posible contactar al cliente",
+  "No se pudo acceder al lugar",
+  "Dirección incorrecta",
+  "Condiciones del lugar impiden realizar el trabajo",
+  "Orden asignada incorrectamente",
+  "Otro motivo administrativo",
+];
 export const GET = withApiHandler(async (request) => {
   const actor = await requireUser();
   await connectDatabase();
+  await NotCompletedReason.bulkWrite(
+    defaultReasons.map((label, sortOrder) => ({
+      updateOne: {
+        filter: { label },
+        update: { $setOnInsert: { label, sortOrder, active: true } },
+        upsert: true,
+      },
+    })),
+    { ordered: false },
+  );
   const includeInactive =
     new URL(request.url).searchParams.get("includeInactive") === "true" &&
     ["OWNER", "ADMIN"].includes(actor.role);

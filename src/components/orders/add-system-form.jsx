@@ -11,7 +11,7 @@ const systemFormSchema = z.object({
   brand: z.string().trim().max(100),
   model: z.string().trim().max(100),
   description: z.string().trim().max(2000),
-  imei: z.string().trim().max(100),
+  imei: z.string().trim(),
   serialNumber: z.string().trim().max(200),
   technicalNotes: z.string().trim().max(4000),
   installedAt: z
