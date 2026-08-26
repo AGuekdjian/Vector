@@ -5,9 +5,13 @@ const schema = new mongoose.Schema(
     firstName: { type: String, trim: true, maxlength: 100 },
     lastName: { type: String, trim: true, maxlength: 100 },
     companyName: { type: String, trim: true, maxlength: 160 },
+    customerNumber: { type: String, trim: true, maxlength: 80 },
+    subscriberNumber: { type: String, trim: true, maxlength: 80 },
     primaryPhone: { type: String, required: true, trim: true, maxlength: 40 },
     secondaryPhone: { type: String, trim: true, maxlength: 40 },
     email: { type: String, trim: true, lowercase: true, maxlength: 160 },
+    address: { type: String, trim: true, maxlength: 300 },
+    department: { type: String, trim: true, maxlength: 100 },
     subscriber: { type: Boolean, required: true },
     customerSince: Date,
     contractStart: Date,
@@ -23,6 +27,8 @@ const schema = new mongoose.Schema(
 schema.index({ lastName: 1, firstName: 1, active: 1 });
 schema.index({ companyName: 1, active: 1 });
 schema.index({ primaryPhone: 1 });
+schema.index({ customerNumber: 1 });
+schema.index({ subscriberNumber: 1 });
 schema.index({ active: 1, updatedAt: -1 });
 export const Customer =
   mongoose.models.Customer || mongoose.model("Customer", schema);

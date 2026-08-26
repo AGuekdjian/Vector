@@ -24,11 +24,23 @@ export function CustomerManager() {
       firstName: "",
       lastName: "",
       companyName: "",
+      customerNumber: "",
+      subscriberNumber: "",
       primaryPhone: "",
+      secondaryPhone: "",
+      email: "",
+      address: "",
+      department: "",
       subscriber: false,
+      customerSince: "",
+      contractStart: "",
+      contractEnd: "",
+      paymentMethod: "",
+      internalNotes: "",
     },
   });
   const customerType = useWatch({ control, name: "customerType" });
+  const subscriber = useWatch({ control, name: "subscriber" });
   const { data, isLoading } = useQuery({
     queryKey: ["customers", debouncedQ, page],
     queryFn: async () => {
@@ -57,8 +69,19 @@ export function CustomerManager() {
         firstName: "",
         lastName: "",
         companyName: "",
+        customerNumber: "",
+        subscriberNumber: "",
         primaryPhone: "",
+        secondaryPhone: "",
+        email: "",
+        address: "",
+        department: "",
         subscriber: false,
+        customerSince: "",
+        contractStart: "",
+        contractEnd: "",
+        paymentMethod: "",
+        internalNotes: "",
       });
     },
   });
@@ -107,6 +130,28 @@ export function CustomerManager() {
           />
         )}
         <input
+          aria-label="Número de cliente"
+          required
+          placeholder="Número de cliente"
+          className="min-h-11 w-full rounded-lg border px-3"
+          aria-invalid={!!errors.customerNumber}
+          {...register("customerNumber")}
+        />
+        <input
+          aria-label="Dirección"
+          required
+          placeholder="Dirección principal"
+          className="min-h-11 w-full rounded-lg border px-3"
+          aria-invalid={!!errors.address}
+          {...register("address")}
+        />
+        <input
+          aria-label="Departamento"
+          placeholder="Departamento"
+          className="min-h-11 w-full rounded-lg border px-3"
+          {...register("department")}
+        />
+        <input
           aria-label="Teléfono principal"
           required
           placeholder="Teléfono principal"
@@ -114,10 +159,62 @@ export function CustomerManager() {
           aria-invalid={!!errors.primaryPhone}
           {...register("primaryPhone")}
         />
+        <input
+          aria-label="Teléfono secundario"
+          placeholder="Teléfono secundario"
+          className="min-h-11 w-full rounded-lg border px-3"
+          {...register("secondaryPhone")}
+        />
+        <input
+          type="email"
+          aria-label="Correo electrónico"
+          placeholder="Correo electrónico"
+          className="min-h-11 w-full rounded-lg border px-3"
+          aria-invalid={!!errors.email}
+          {...register("email")}
+        />
         <label className="flex gap-2">
           <input type="checkbox" {...register("subscriber")} />
           Abonado
         </label>
+        {subscriber && (
+          <input
+            aria-label="Número de abonado"
+            required
+            placeholder="Número de abonado"
+            className="min-h-11 w-full rounded-lg border px-3"
+            aria-invalid={!!errors.subscriberNumber}
+            {...register("subscriberNumber")}
+          />
+        )}
+        <div className="grid grid-cols-1 gap-2 sm:grid-cols-3">
+          {[
+            ["customerSince", "Cliente desde"],
+            ["contractStart", "Inicio de contrato"],
+            ["contractEnd", "Fin de contrato"],
+          ].map(([field, label]) => (
+            <label key={field} className="text-sm">
+              {label}
+              <input
+                type="date"
+                className="mt-1 min-h-11 w-full rounded-lg border px-2"
+                {...register(field)}
+              />
+            </label>
+          ))}
+        </div>
+        <input
+          aria-label="Forma de pago"
+          placeholder="Forma de pago"
+          className="min-h-11 w-full rounded-lg border px-3"
+          {...register("paymentMethod")}
+        />
+        <textarea
+          aria-label="Nota interna"
+          placeholder="Nota interna"
+          className="min-h-24 w-full rounded-lg border p-3"
+          {...register("internalNotes")}
+        />
         {Object.keys(errors).length > 0 && (
           <p role="alert" className="text-sm text-red-700">
             Revisa los campos obligatorios.
@@ -141,7 +238,7 @@ export function CustomerManager() {
         </label>
         <input
           id="search"
-          placeholder="Buscar por nombre o teléfono"
+          placeholder="Buscar por nombre, número, teléfono o dirección"
           className="mb-4 min-h-11 w-full rounded-lg border px-3"
           value={q}
           onChange={(e) => {
@@ -162,8 +259,12 @@ export function CustomerManager() {
                   {item.companyName || `${item.firstName} ${item.lastName}`}
                 </Link>
                 <span className="ml-3 text-sm font-normal text-zinc-600">
-                  {item.primaryPhone}
+                  N.º {item.customerNumber} · {item.primaryPhone}
                 </span>
+                <p className="mt-1 text-sm font-normal text-zinc-600">
+                  {item.address}
+                  {item.department ? `, ${item.department}` : ""}
+                </p>
               </li>
             ))}
           </ul>

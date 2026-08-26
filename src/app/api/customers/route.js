@@ -15,9 +15,15 @@ export const GET = withApiHandler(async (request) => {
   const q = safeRegex(url.searchParams.get("q") || "");
   const filter = { active: url.searchParams.get("active") !== "false" };
   if (q)
-    filter.$or = ["firstName", "lastName", "companyName", "primaryPhone"].map(
-      (field) => ({ [field]: { $regex: q, $options: "i" } }),
-    );
+    filter.$or = [
+      "firstName",
+      "lastName",
+      "companyName",
+      "customerNumber",
+      "subscriberNumber",
+      "primaryPhone",
+      "address",
+    ].map((field) => ({ [field]: { $regex: q, $options: "i" } }));
   const [items, total] = await Promise.all([
     Customer.find(filter)
       .sort({ updatedAt: -1 })

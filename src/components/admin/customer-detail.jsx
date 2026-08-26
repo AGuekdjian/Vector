@@ -105,6 +105,14 @@ export function CustomerDetail({ id }) {
         <p className="mt-2">
           {item.primaryPhone} · {item.subscriber ? "Abonado" : "No abonado"}
         </p>
+        <p className="mt-1 text-zinc-700">
+          Cliente N.º {item.customerNumber || "sin asignar"}
+          {item.subscriberNumber ? ` · Abonado N.º ${item.subscriberNumber}` : ""}
+        </p>
+        <p className="mt-1 text-zinc-700">
+          {item.address || "Dirección principal no registrada"}
+          {item.department ? `, ${item.department}` : ""}
+        </p>
         <CustomerAdminForm
           customer={item}
           onSaved={() => qc.invalidateQueries({ queryKey: ["customer", id] })}
@@ -118,7 +126,7 @@ export function CustomerDetail({ id }) {
           )}
           noValidate
         >
-          <h2 className="font-bold">Nueva instalación</h2>
+          <h2 className="font-bold">Nuevo lugar de servicio</h2>
           {["name", "address", "department"].map((field) => (
             <input
               key={field}
@@ -136,11 +144,11 @@ export function CustomerDetail({ id }) {
             />
           ))}
           <button className="min-h-11 w-full rounded-lg bg-red-800 font-semibold text-white">
-            Agregar instalación
+            Agregar lugar
           </button>
         </form>
         <div>
-          <h2 className="mb-3 font-bold">Instalaciones</h2>
+          <h2 className="mb-3 font-bold">Lugares de servicio</h2>
           <div className="grid gap-2">
             {installations.data?.items.map((x) => (
               <InstallationAdminCard
