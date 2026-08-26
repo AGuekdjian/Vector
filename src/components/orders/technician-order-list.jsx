@@ -74,7 +74,13 @@ export function TechnicianOrderList() {
               {customerName(order.customerId)}
             </h2>
             <p className="mt-1 line-clamp-2 text-sm text-zinc-600">
-              {order.workDescription}
+              {{
+                INSTALLATION: "Instalación",
+                MAINTENANCE: "Mantenimiento",
+                REPAIR: "Reparación",
+                INSPECTION: "Inspección",
+                OTHER: "Otro",
+              }[order.serviceType] || "Mantenimiento"} · {order.workDescription}
             </p>
             <p className="mt-2 text-sm text-zinc-700">
               {order.installationId?.address}

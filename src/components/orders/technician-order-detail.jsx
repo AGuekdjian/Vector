@@ -206,6 +206,15 @@ export function TechnicianOrderDetail({ id }) {
       )}
       <section className="rounded-xl bg-white p-4">
         <h2 className="font-bold">Trabajo a realizar</h2>
+        <p className="mt-2 font-medium">
+          Tipo: {{
+            INSTALLATION: "Instalación",
+            MAINTENANCE: "Mantenimiento",
+            REPAIR: "Reparación",
+            INSPECTION: "Inspección",
+            OTHER: "Otro",
+          }[order.serviceType] || "Mantenimiento"}
+        </p>
         <p className="mt-2 whitespace-pre-wrap">{order.workDescription}</p>
         {order.technicianNote && (
           <p className="mt-3 rounded-lg bg-amber-50 p-3">

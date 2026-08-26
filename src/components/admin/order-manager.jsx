@@ -20,12 +20,16 @@ export function OrderManager() {
   const [page, setPage] = useState(1);
   const [technicianId, setTechnicianId] = useState("");
   const [customerFilter, setCustomerFilter] = useState("");
+  const [customerSearch, setCustomerSearch] = useState("");
+  const [selectedCustomer, setSelectedCustomer] = useState(null);
+  const debouncedCustomerSearch = useDebouncedValue(customerSearch);
   const orderForm = useForm({
     resolver: zodResolver(orderCreateSchema),
     defaultValues: {
       externalOrderNumber: "",
       customerId: "",
       installationId: "",
+      serviceType: "MAINTENANCE",
       responsibleTechnicianId: null,
       companionEmployeeId: null,
       vehicleId: null,
@@ -57,8 +61,11 @@ export function OrderManager() {
       ),
   });
   const customers = useQuery({
-    queryKey: ["customers-select"],
-    queryFn: () => get("/api/customers?limit=100"),
+    queryKey: ["customers-select", debouncedCustomerSearch],
+    queryFn: () =>
+      get(
+        `/api/customers?q=${encodeURIComponent(debouncedCustomerSearch)}&limit=20`,
+      ),
   });
   const users = useQuery({
     queryKey: ["users"],
@@ -112,33 +119,104 @@ export function OrderManager() {
           className="min-h-11 w-full rounded-lg border px-3"
           {...orderForm.register("externalOrderNumber")}
         />
+        <div className="relative">
+          <label htmlFor="order-customer" className="mb-1 block text-sm font-medium">
+            Cliente
+          </label>
+          <input type="hidden" {...orderForm.register("customerId")} />
+          <input
+            id="order-customer"
+            role="combobox"
+            aria-autocomplete="list"
+            aria-expanded={!!customerSearch && !selectedCustomer}
+            aria-controls="order-customer-results"
+            autoComplete="off"
+            placeholder="Buscar por nombre, número, teléfono o dirección"
+            className="min-h-11 w-full rounded-lg border px-3"
+            value={customerSearch}
+            onChange={(event) => {
+              setCustomerSearch(event.target.value);
+              setSelectedCustomer(null);
+              orderForm.setValue("customerId", "", { shouldValidate: true });
+              orderForm.setValue("installationId", "");
+            }}
+          />
+          {!!customerSearch && !selectedCustomer && (
+            <ul
+              id="order-customer-results"
+              role="listbox"
+              className="absolute z-20 mt-1 max-h-64 w-full overflow-auto rounded-lg border bg-white shadow-lg"
+            >
+              {customers.data?.items.map((customer) => (
+                <li key={customer._id} role="option" aria-selected="false">
+                  <button
+                    type="button"
+                    className="w-full px-3 py-2 text-left hover:bg-zinc-100"
+                    onClick={() => {
+                      const name =
+                        customer.companyName ||
+                        `${customer.firstName} ${customer.lastName}`;
+                      setSelectedCustomer(customer);
+                      setCustomerSearch(name);
+                      orderForm.setValue("customerId", customer._id, {
+                        shouldValidate: true,
+                      });
+                      orderForm.setValue("installationId", "");
+                    }}
+                  >
+                    <span className="block font-medium">
+                      {customer.companyName ||
+                        `${customer.firstName} ${customer.lastName}`}
+                    </span>
+                    <span className="block text-sm text-zinc-600">
+                      N.º {customer.customerNumber || "—"} · {customer.primaryPhone}
+                    </span>
+                  </button>
+                </li>
+              ))}
+            </ul>
+          )}
+        </div>
+        {selectedCustomer && (
+          <div className="rounded-lg bg-zinc-50 p-3 text-sm" aria-live="polite">
+            <p className="font-medium">Dirección principal del cliente</p>
+            <p>
+              {selectedCustomer.address || "No registrada"}
+              {selectedCustomer.department
+                ? `, ${selectedCustomer.department}`
+                : ""}
+            </p>
+            {selectedCustomer.subscriberNumber && (
+              <p className="mt-1 text-zinc-600">
+                Abonado N.º {selectedCustomer.subscriberNumber}
+              </p>
+            )}
+          </div>
+        )}
         <select
           required
-          aria-label="Cliente"
-          className="min-h-11 w-full rounded-lg border px-3"
-          {...orderForm.register("customerId", {
-            onChange: () => orderForm.setValue("installationId", ""),
-          })}
-        >
-          <option value="">Cliente</option>
-          {customers.data?.items.map((x) => (
-            <option key={x._id} value={x._id}>
-              {x.companyName || `${x.firstName} ${x.lastName}`}
-            </option>
-          ))}
-        </select>
-        <select
-          required
-          aria-label="Instalación"
+          aria-label="Lugar del servicio"
           className="min-h-11 w-full rounded-lg border px-3"
           {...orderForm.register("installationId")}
         >
-          <option value="">Instalación</option>
+          <option value="">Lugar del servicio</option>
           {installations.data?.items.map((x) => (
             <option key={x._id} value={x._id}>
               {x.name} — {x.address}
             </option>
           ))}
+        </select>
+        <select
+          required
+          aria-label="Tipo de servicio"
+          className="min-h-11 w-full rounded-lg border px-3"
+          {...orderForm.register("serviceType")}
+        >
+          <option value="INSTALLATION">Instalación</option>
+          <option value="MAINTENANCE">Mantenimiento</option>
+          <option value="REPAIR">Reparación</option>
+          <option value="INSPECTION">Inspección</option>
+          <option value="OTHER">Otro</option>
         </select>
         <div className="grid grid-cols-2 gap-2">
           <input
@@ -207,7 +285,7 @@ export function OrderManager() {
         <textarea
           required
           aria-label="Trabajo"
-          placeholder="Trabajo a realizar"
+          placeholder="Trabajo a realizar (detalle de la tarea)"
           className="min-h-24 w-full rounded-lg border p-3"
           {...orderForm.register("workDescription")}
         />
@@ -362,6 +440,15 @@ export function OrderManager() {
               <p className="mt-1 text-sm text-zinc-600">
                 {x.customerId?.companyName ||
                   `${x.customerId?.firstName || ""} ${x.customerId?.lastName || ""}`}
+                {` · ${
+                  {
+                    INSTALLATION: "Instalación",
+                    MAINTENANCE: "Mantenimiento",
+                    REPAIR: "Reparación",
+                    INSPECTION: "Inspección",
+                    OTHER: "Otro",
+                  }[x.serviceType] || "Mantenimiento"
+                }`}
               </p>
             </li>
           ))}

@@ -5,6 +5,9 @@ export const orderCreateSchema = z.object({
   externalOrderNumber: z.string().trim().min(1).max(80),
   customerId: oid,
   installationId: oid,
+  serviceType: z
+    .enum(["INSTALLATION", "MAINTENANCE", "REPAIR", "INSPECTION", "OTHER"])
+    .default("MAINTENANCE"),
   responsibleTechnicianId: optionalOid,
   companionEmployeeId: optionalOid,
   vehicleId: optionalOid,

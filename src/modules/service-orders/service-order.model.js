@@ -42,6 +42,12 @@ const schema = new mongoose.Schema(
       required: true,
       index: true,
     },
+    serviceType: {
+      type: String,
+      enum: ["INSTALLATION", "MAINTENANCE", "REPAIR", "INSPECTION", "OTHER"],
+      default: "MAINTENANCE",
+      required: true,
+    },
     responsibleTechnicianId: {
       type: mongoose.Schema.Types.ObjectId,
       ref: "User",

@@ -26,6 +26,7 @@ function OrderEditor({ order }) {
       scheduledDate: new Date(order.scheduledDate).toISOString().slice(0, 10),
       scheduledTime: order.scheduledTime,
       workDescription: order.workDescription,
+      serviceType: order.serviceType || "MAINTENANCE",
       technicianNote: order.technicianNote || "",
       internalNote: order.internalNote || "",
     },
@@ -129,6 +130,17 @@ function OrderEditor({ order }) {
       </div>
       <label className="sm:col-span-2">
         Trabajo a realizar
+        <select
+          aria-label="Tipo de servicio"
+          className="min-h-11 w-full rounded-lg border px-3"
+          {...register("serviceType")}
+        >
+          <option value="INSTALLATION">Instalación</option>
+          <option value="MAINTENANCE">Mantenimiento</option>
+          <option value="REPAIR">Reparación</option>
+          <option value="INSPECTION">Inspección</option>
+          <option value="OTHER">Otro</option>
+        </select>
         <textarea
           disabled={!editable}
           className="mt-1 min-h-24 w-full rounded-lg border p-3"
@@ -201,7 +213,7 @@ export function AdminOrderDetail({ id }) {
             `${order.customerId.firstName || ""} ${order.customerId.lastName || ""}`}
         </p>
         <p className="text-zinc-600">
-          {order.installationId.name} · {order.installationId.address}
+          Lugar del servicio: {order.installationId.name} · {order.installationId.address}
         </p>
         {order.technicianObservation && (
           <p className="mt-3 rounded-lg bg-emerald-50 p-3">
