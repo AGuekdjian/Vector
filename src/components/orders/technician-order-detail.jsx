@@ -4,6 +4,7 @@ import { zodResolver } from "@hookform/resolvers/zod";
 import { useState } from "react";
 import { useForm, useWatch } from "react-hook-form";
 import { z } from "zod";
+import Link from "next/link";
 import { enqueueOperation, getOperation } from "@/offline/outbox";
 import { syncOutbox } from "@/offline/sync-manager";
 import {
@@ -13,6 +14,15 @@ import {
 } from "@/offline/indexed-db";
 import { SystemEditor } from "@/components/orders/system-editor";
 import { AddSystemForm } from "@/components/orders/add-system-form";
+const statusLabel = {
+  PENDING: "Pendiente",
+  ASSIGNED: "Asignada",
+  IN_PROGRESS: "En curso",
+  RESCHEDULED: "Reprogramada",
+  COMPLETED: "Realizada",
+  REQUIRES_QUOTE: "Requiere cotización",
+  NOT_COMPLETED: "No realizada",
+};
 const completionFormSchema = z
   .object({
     result: z.enum(["COMPLETED", "REQUIRES_QUOTE", "NOT_COMPLETED"]),
@@ -129,10 +139,15 @@ export function TechnicianOrderDetail({ id }) {
   const address = order.installationId.address;
   return (
     <div className="space-y-4">
+      <Link href="/technician/orders" className="back-link">
+        <span aria-hidden="true">←</span> Volver a mis órdenes
+      </Link>
       <section className="rounded-xl bg-white p-4">
         <div className="flex justify-between">
           <h1 className="text-xl font-bold">OS {order.externalOrderNumber}</h1>
-          <span className="text-sm font-semibold">{order.status}</span>
+          <span className="text-sm font-semibold">
+            {statusLabel[order.status] || order.status}
+          </span>
         </div>
         <h2 className="mt-4 text-lg font-semibold">{name}</h2>
         <p>{customer.subscriber ? "ABONADO" : "NO ABONADO"}</p>

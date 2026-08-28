@@ -14,6 +14,15 @@ const get = async (url) => {
   if (!r.ok) throw new Error();
   return r.json();
 };
+const statusLabel = {
+  PENDING: "Pendiente",
+  ASSIGNED: "Asignada",
+  IN_PROGRESS: "En curso",
+  RESCHEDULED: "Reprogramada",
+  COMPLETED: "Realizada",
+  REQUIRES_QUOTE: "Requiere cotización",
+  NOT_COMPLETED: "No realizada",
+};
 export function OrderManager() {
   const qc = useQueryClient();
   const [status, setStatus] = useState("");
@@ -100,6 +109,13 @@ export function OrderManager() {
     enabled: !!selectedCustomerId,
     staleTime: 2 * 60_000,
   });
+  const relatedOrders = useQuery({
+    queryKey: ["related-orders", selectedCustomerId],
+    queryFn: () =>
+      get(`/api/orders?customerId=${selectedCustomerId}&page=1&limit=5`),
+    enabled: !!selectedCustomerId,
+    staleTime: 30_000,
+  });
   const createPlace = useMutation({
     mutationFn: async (data) => {
       const response = await fetch("/api/installations", {
@@ -162,6 +178,8 @@ export function OrderManager() {
     },
     onSuccess: () => {
       qc.invalidateQueries({ queryKey: ["orders-admin"] });
+      qc.invalidateQueries({ queryKey: ["statistics"] });
+      qc.invalidateQueries({ queryKey: ["related-orders"] });
       orderForm.reset({
         ...orderForm.getValues(),
         externalOrderNumber: "",
@@ -184,7 +202,7 @@ export function OrderManager() {
         <input
           required
           aria-label="Número OS"
-          placeholder="Número OS de Eximia"
+          placeholder="Número de orden"
           className="min-h-11 w-full rounded-lg border px-3"
           {...orderForm.register("externalOrderNumber")}
         />
@@ -471,17 +489,12 @@ export function OrderManager() {
           })}
         >
           <option value="">Sin orden relacionada</option>
-          {orders.data?.items
-            .filter((item) =>
-              ["REQUIRES_QUOTE", "NOT_COMPLETED", "COMPLETED"].includes(
-                item.status,
-              ),
-            )
-            .map((item) => (
-              <option key={item._id} value={item._id}>
-                OS {item.externalOrderNumber}
-              </option>
-            ))}
+          {relatedOrders.data?.items.map((item) => (
+            <option key={item._id} value={item._id}>
+              OS {item.externalOrderNumber} ·{" "}
+              {new Date(item.scheduledDate).toLocaleDateString("es-UY")}
+            </option>
+          ))}
         </select>
         <textarea
           aria-label="Nota técnico"
@@ -491,7 +504,7 @@ export function OrderManager() {
         />
         <textarea
           aria-label="Nota interna"
-          placeholder="Nota interna (sólo OWNER y ADMIN)"
+          placeholder="Nota interna (sólo propietario y administrador)"
           className="min-h-20 w-full rounded-lg border p-3"
           {...orderForm.register("internalNote")}
         />
@@ -511,7 +524,7 @@ export function OrderManager() {
                 </li>
               )}
               {orderForm.formState.errors.externalOrderNumber && (
-                <li>Ingresa el número de OS de Eximia.</li>
+                <li>Ingresa el número de orden.</li>
               )}
               {orderForm.formState.errors.workDescription && (
                 <li>Describe el trabajo a realizar.</li>
@@ -611,7 +624,9 @@ export function OrderManager() {
               "REQUIRES_QUOTE",
               "NOT_COMPLETED",
             ].map((x) => (
-              <option key={x}>{x}</option>
+              <option key={x} value={x}>
+                {statusLabel[x]}
+              </option>
             ))}
           </select>
           <select
@@ -662,7 +677,7 @@ export function OrderManager() {
                   >
                     OS {x.externalOrderNumber}
                   </Link>
-                  <span>{x.status}</span>
+                  <span>{statusLabel[x.status] || x.status}</span>
                 </div>
                 <p className="mt-1 text-sm text-zinc-600">
                   {x.customerId?.companyName ||

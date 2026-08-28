@@ -2,7 +2,30 @@
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 import { zodResolver } from "@hookform/resolvers/zod";
 import { useForm } from "react-hook-form";
+import { useState } from "react";
+import Link from "next/link";
 import { orderUpdateSchema } from "@/modules/service-orders/order.schemas";
+import { Toast } from "@/components/ui/toast";
+
+const statusLabel = {
+  PENDING: "Pendiente",
+  ASSIGNED: "Asignada",
+  IN_PROGRESS: "En curso",
+  RESCHEDULED: "Reprogramada",
+  COMPLETED: "Realizada",
+  REQUIRES_QUOTE: "Requiere cotización",
+  NOT_COMPLETED: "No realizada",
+};
+const actionLabel = {
+  ORDER_CREATED: "Orden creada",
+  ORDER_ASSIGNED: "Técnico asignado",
+  TECHNICIAN_REASSIGNED: "Técnico reasignado",
+  TECHNICIAN_UNASSIGNED: "Técnico quitado",
+  ORDER_UPDATED: "Orden modificada",
+  ORDER_STARTED: "Trabajo iniciado",
+  ORDER_COMPLETED: "Orden finalizada",
+  ORDER_RESCHEDULED: "Orden reprogramada",
+};
 
 const get = async (url) => {
   const response = await fetch(url);
@@ -14,6 +37,7 @@ const get = async (url) => {
 
 function OrderEditor({ order }) {
   const queryClient = useQueryClient();
+  const [notice, setNotice] = useState(null);
   const { register, handleSubmit } = useForm({
     resolver: zodResolver(orderUpdateSchema),
     defaultValues: {
@@ -54,129 +78,150 @@ function OrderEditor({ order }) {
       if (!response.ok) throw new Error(body.error?.message);
       return body;
     },
-    onSuccess: () =>
-      queryClient.invalidateQueries({ queryKey: ["order-admin", order._id] }),
+    onSuccess: async () => {
+      setNotice({
+        tone: "success",
+        message: "Los cambios se guardaron correctamente.",
+      });
+      await Promise.all([
+        queryClient.invalidateQueries({ queryKey: ["order-admin", order._id] }),
+        queryClient.invalidateQueries({ queryKey: ["orders-admin"] }),
+        queryClient.invalidateQueries({ queryKey: ["statistics"] }),
+      ]);
+    },
+    onError: (error) =>
+      setNotice({
+        tone: "error",
+        message: error.message || "No fue posible guardar los cambios.",
+      }),
   });
   const editable = ["PENDING", "ASSIGNED", "RESCHEDULED"].includes(
     order.status,
   );
   return (
-    <form
-      className="grid gap-3 rounded-xl border bg-white p-4 sm:grid-cols-2"
-      onSubmit={handleSubmit((data) => update.mutate(data))}
-      noValidate
-    >
-      <h2 className="font-bold sm:col-span-2">Asignación y planificación</h2>
-      <select
-        disabled={!editable}
-        aria-label="Técnico responsable"
-        className="min-h-11 rounded-lg border px-3"
-        {...register("responsibleTechnicianId", {
-          setValueAs: (value) => value || null,
-        })}
+    <>
+      <form
+        className="grid gap-3 rounded-xl border bg-white p-4 sm:grid-cols-2"
+        onSubmit={handleSubmit((data) => update.mutate(data))}
+        noValidate
       >
-        <option value="">Sin asignar</option>
-        {users.data?.items
-          .filter((user) => user.role === "TECHNICIAN" && user.active)
-          .map((user) => (
-            <option key={user._id} value={user._id}>
-              {user.employeeId.firstName} {user.employeeId.lastName}
+        <h2 className="font-bold sm:col-span-2">Asignación y planificación</h2>
+        <select
+          disabled={!editable}
+          aria-label="Técnico responsable"
+          className="min-h-11 rounded-lg border px-3"
+          {...register("responsibleTechnicianId", {
+            setValueAs: (value) => value || null,
+          })}
+        >
+          <option value="">Sin asignar</option>
+          {users.data?.items
+            .filter((user) => user.role === "TECHNICIAN" && user.active)
+            .map((user) => (
+              <option key={user._id} value={user._id}>
+                {user.employeeId.firstName} {user.employeeId.lastName}
+              </option>
+            ))}
+        </select>
+        <select
+          disabled={!editable}
+          aria-label="Compañero"
+          className="min-h-11 rounded-lg border px-3"
+          {...register("companionEmployeeId", {
+            setValueAs: (value) => value || null,
+          })}
+        >
+          <option value="">Solo</option>
+          {employees.data?.items.map((employee) => (
+            <option key={employee._id} value={employee._id}>
+              {employee.firstName} {employee.lastName}
             </option>
           ))}
-      </select>
-      <select
-        disabled={!editable}
-        aria-label="Compañero"
-        className="min-h-11 rounded-lg border px-3"
-        {...register("companionEmployeeId", {
-          setValueAs: (value) => value || null,
-        })}
-      >
-        <option value="">Solo</option>
-        {employees.data?.items.map((employee) => (
-          <option key={employee._id} value={employee._id}>
-            {employee.firstName} {employee.lastName}
-          </option>
-        ))}
-      </select>
-      <select
-        disabled={!editable}
-        aria-label="Vehículo"
-        className="min-h-11 rounded-lg border px-3"
-        {...register("vehicleId", { setValueAs: (value) => value || null })}
-      >
-        <option value="">Sin vehículo</option>
-        {vehicles.data?.items.map((vehicle) => (
-          <option key={vehicle._id} value={vehicle._id}>
-            {vehicle.plate}
-          </option>
-        ))}
-      </select>
-      <div className="grid grid-cols-2 gap-2">
-        <input
-          disabled={!editable}
-          aria-label="Fecha programada"
-          type="date"
-          className="min-h-11 rounded-lg border px-2"
-          {...register("scheduledDate")}
-        />
-        <input
-          disabled={!editable}
-          aria-label="Hora programada"
-          type="time"
-          className="min-h-11 rounded-lg border px-2"
-          {...register("scheduledTime")}
-        />
-      </div>
-      <label className="sm:col-span-2">
-        Trabajo a realizar
-        <select
-          aria-label="Tipo de servicio"
-          className="min-h-11 w-full rounded-lg border px-3"
-          {...register("serviceType")}
-        >
-          <option value="INSTALLATION">Instalación</option>
-          <option value="MAINTENANCE">Mantenimiento</option>
-          <option value="REPAIR">Reparación</option>
-          <option value="INSPECTION">Inspección</option>
-          <option value="OTHER">Otro</option>
         </select>
-        <textarea
+        <select
           disabled={!editable}
-          className="mt-1 min-h-24 w-full rounded-lg border p-3"
-          {...register("workDescription")}
-        />
-      </label>
-      <label>
-        Nota para técnico
-        <textarea
-          disabled={!editable}
-          className="mt-1 min-h-20 w-full rounded-lg border p-3"
-          {...register("technicianNote")}
-        />
-      </label>
-      <label>
-        Nota interna
-        <textarea
-          disabled={!editable}
-          className="mt-1 min-h-20 w-full rounded-lg border p-3"
-          {...register("internalNote")}
-        />
-      </label>
-      {update.error && (
-        <p role="alert" className="text-sm text-red-700 sm:col-span-2">
-          {update.error.message}
-        </p>
-      )}
-      {editable && (
-        <button
-          disabled={update.isPending}
-          className="min-h-11 rounded-lg bg-red-800 font-semibold text-white sm:col-span-2"
+          aria-label="Vehículo"
+          className="min-h-11 rounded-lg border px-3"
+          {...register("vehicleId", { setValueAs: (value) => value || null })}
         >
-          Guardar cambios
-        </button>
-      )}
-    </form>
+          <option value="">Sin vehículo</option>
+          {vehicles.data?.items.map((vehicle) => (
+            <option key={vehicle._id} value={vehicle._id}>
+              {vehicle.plate}
+            </option>
+          ))}
+        </select>
+        <div className="grid grid-cols-2 gap-2">
+          <input
+            disabled={!editable}
+            aria-label="Fecha programada"
+            type="date"
+            className="min-h-11 rounded-lg border px-2"
+            {...register("scheduledDate")}
+          />
+          <input
+            disabled={!editable}
+            aria-label="Hora programada"
+            type="time"
+            className="min-h-11 rounded-lg border px-2"
+            {...register("scheduledTime")}
+          />
+        </div>
+        <label className="sm:col-span-2">
+          Trabajo a realizar
+          <select
+            aria-label="Tipo de servicio"
+            className="min-h-11 w-full rounded-lg border px-3"
+            {...register("serviceType")}
+          >
+            <option value="INSTALLATION">Instalación</option>
+            <option value="MAINTENANCE">Mantenimiento</option>
+            <option value="REPAIR">Reparación</option>
+            <option value="INSPECTION">Inspección</option>
+            <option value="OTHER">Otro</option>
+          </select>
+          <textarea
+            disabled={!editable}
+            className="mt-1 min-h-24 w-full rounded-lg border p-3"
+            {...register("workDescription")}
+          />
+        </label>
+        <label>
+          Nota para técnico
+          <textarea
+            disabled={!editable}
+            className="mt-1 min-h-20 w-full rounded-lg border p-3"
+            {...register("technicianNote")}
+          />
+        </label>
+        <label>
+          Nota interna
+          <textarea
+            disabled={!editable}
+            className="mt-1 min-h-20 w-full rounded-lg border p-3"
+            {...register("internalNote")}
+          />
+        </label>
+        {update.error && (
+          <p role="alert" className="text-sm text-red-700 sm:col-span-2">
+            {update.error.message}
+          </p>
+        )}
+        {editable && (
+          <button
+            disabled={update.isPending}
+            className="min-h-11 rounded-lg bg-red-800 font-semibold text-white sm:col-span-2"
+          >
+            Guardar cambios
+          </button>
+        )}
+      </form>
+      <Toast
+        message={notice?.message}
+        tone={notice?.tone}
+        onClose={() => setNotice(null)}
+      />
+    </>
   );
 }
 
@@ -196,6 +241,9 @@ export function AdminOrderDetail({ id }) {
   const order = orderQuery.data.item;
   return (
     <div className="space-y-5">
+      <Link href="/orders" className="back-link">
+        <span aria-hidden="true">←</span> Volver a órdenes
+      </Link>
       <section className="surface-card p-5">
         <div className="flex flex-wrap items-start justify-between gap-3">
           <div>
@@ -205,7 +253,7 @@ export function AdminOrderDetail({ id }) {
             </h1>
           </div>
           <span className="rounded-full bg-zinc-100 px-3 py-1 text-sm font-semibold">
-            {order.status}
+            {statusLabel[order.status] || order.status}
           </span>
         </div>
         <p className="mt-4 font-semibold">
@@ -213,7 +261,8 @@ export function AdminOrderDetail({ id }) {
             `${order.customerId.firstName || ""} ${order.customerId.lastName || ""}`}
         </p>
         <p className="text-zinc-600">
-          Lugar del servicio: {order.installationId.name} · {order.installationId.address}
+          Lugar del servicio: {order.installationId.name} ·{" "}
+          {order.installationId.address}
         </p>
         {order.technicianObservation && (
           <p className="mt-3 rounded-lg bg-emerald-50 p-3">
@@ -226,7 +275,7 @@ export function AdminOrderDetail({ id }) {
           </p>
         )}
       </section>
-      <OrderEditor key={`${order._id}-${order.updatedAt}`} order={order} />
+      <OrderEditor order={order} />
       <section className="rounded-xl border bg-white p-4">
         <h2 className="font-bold">Timeline</h2>
         <ol className="mt-3 divide-y">
@@ -235,7 +284,7 @@ export function AdminOrderDetail({ id }) {
               key={event._id}
               className="flex justify-between gap-3 py-3 text-sm"
             >
-              <span>{event.action}</span>
+              <span>{actionLabel[event.action] || event.action}</span>
               <time className="text-zinc-500">
                 {new Date(event.createdAt).toLocaleString("es-UY")}
               </time>
