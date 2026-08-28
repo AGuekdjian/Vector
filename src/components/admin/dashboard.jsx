@@ -29,9 +29,8 @@ export function Dashboard() {
   const completed = data.byStatus.COMPLETED || 0;
   const quoted = data.byStatus.REQUIRES_QUOTE || 0;
   const notCompleted = data.byStatus.NOT_COMPLETED || 0;
-  const resolvedTotal = completed + quoted + notCompleted;
-  const completionRate = resolvedTotal
-    ? Math.round((completed / resolvedTotal) * 100)
+  const completionRate = data.thisMonth
+    ? Math.round((completed / data.thisMonth) * 100)
     : 0;
   const cards = [
     {
@@ -71,12 +70,12 @@ export function Dashboard() {
         <div>
           <p className="dashboard-kicker">Actividad de hoy</p>
           <p className="dashboard-big-number">{data.today}</p>
-          <p className="text-sm text-white/65">órdenes programadas o creadas</p>
+          <p className="text-sm text-white/65">órdenes programadas para hoy</p>
         </div>
         <div className="dashboard-progress-panel">
           <div className="flex items-end justify-between gap-4">
             <div>
-              <p className="text-sm text-white/65">Resolución general</p>
+              <p className="text-sm text-white/65">Realizadas este mes</p>
               <p className="mt-1 text-3xl font-bold">{completionRate}%</p>
             </div>
             <Link href="/orders" className="dashboard-action">
@@ -86,13 +85,16 @@ export function Dashboard() {
           <div
             className="dashboard-progress"
             role="progressbar"
-            aria-label={`${completionRate}% de órdenes realizadas`}
+            aria-label={`${completionRate}% de las órdenes del mes están realizadas`}
             aria-valuemin="0"
             aria-valuemax="100"
             aria-valuenow={completionRate}
           >
             <span style={{ width: `${completionRate}%` }} />
           </div>
+          <p className="mt-2 text-xs text-white/55">
+            {completed} realizadas de {data.thisMonth} órdenes del mes
+          </p>
         </div>
       </section>
       <div className="grid gap-4 sm:grid-cols-2 xl:grid-cols-3">

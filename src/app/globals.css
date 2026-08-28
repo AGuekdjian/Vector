@@ -25,6 +25,7 @@ body {
     rgb(153 27 27 / 0.055),
     transparent 30rem
   );
+  overflow-x: hidden;
 }
 
 button,
@@ -83,13 +84,13 @@ summary:focus-visible {
   width: 100%;
   max-width: 80rem;
   margin-inline: auto;
-  padding: 1.5rem 1rem 5rem;
+  padding: 1.15rem 1rem 3.5rem;
 }
 .page-title {
-  margin-bottom: 1.5rem;
+  margin-bottom: 1.1rem;
 }
 .page-title h1 {
-  font-size: clamp(1.6rem, 3vw, 2.25rem);
+  font-size: clamp(1.45rem, 2.5vw, 1.95rem);
   line-height: 1.15;
   font-weight: 750;
   letter-spacing: -0.035em;
@@ -111,7 +112,7 @@ summary:focus-visible {
 .surface-card {
   overflow: hidden;
   border: 1px solid var(--border);
-  border-radius: 1.15rem;
+  border-radius: 0.9rem;
   background: rgb(255 255 255 / 0.94);
   box-shadow:
     0 1px 2px rgb(24 24 27 / 0.03),
@@ -132,13 +133,13 @@ summary:focus-visible {
 .metric-card {
   position: relative;
   display: flex;
-  min-height: 8.5rem;
+  min-height: 7rem;
   flex-direction: column;
   justify-content: center;
   border: 1px solid var(--border);
-  border-radius: 1.1rem;
+  border-radius: 0.9rem;
   background: white;
-  padding: 1.35rem;
+  padding: 1rem;
   box-shadow: 0 8px 24px rgb(24 24 27 / 0.035);
 }
 .metric-card span,
@@ -147,7 +148,7 @@ summary:focus-visible {
 }
 .metric-card strong {
   margin-block: 0.25rem;
-  font-size: 2rem;
+  font-size: 1.65rem;
   line-height: 2rem;
 }
 .metric-indicator {
@@ -171,6 +172,21 @@ summary:focus-visible {
 .metric-danger .metric-indicator {
   background: #b91c1c;
   box-shadow: 0 0 0 5px rgb(185 28 28 / 0.12);
+}
+
+/* Densidad operativa para aprovechar mejor el viewport. */
+.page-container input:not([type="checkbox"]):not([type="radio"]),
+.page-container select,
+.page-container button {
+  min-height: 2.35rem;
+}
+.page-container input,
+.page-container select,
+.page-container textarea {
+  font-size: 0.875rem;
+}
+.page-container textarea {
+  line-height: 1.45;
 }
 
 .admin-app-header,
@@ -262,11 +278,11 @@ summary:focus-visible {
 .dashboard-spotlight {
   position: relative;
   display: grid;
-  gap: 2rem;
+  gap: 1.35rem;
   overflow: hidden;
-  border-radius: 1.35rem;
+  border-radius: 1rem;
   background: linear-gradient(125deg, #18181b 0%, #27272a 64%, #7f1d1d 135%);
-  padding: 1.6rem;
+  padding: 1.25rem;
   color: white;
   box-shadow: 0 18px 40px rgb(24 24 27 / 0.12);
 }
@@ -293,7 +309,7 @@ summary:focus-visible {
 }
 .dashboard-big-number {
   margin-block: 0.25rem;
-  font-size: clamp(3.5rem, 8vw, 5rem);
+  font-size: clamp(2.75rem, 6vw, 4rem);
   line-height: 1;
   font-weight: 780;
   letter-spacing: -0.065em;
@@ -303,7 +319,7 @@ summary:focus-visible {
   border: 1px solid rgb(255 255 255 / 0.12);
   border-radius: 1rem;
   background: rgb(255 255 255 / 0.06);
-  padding: 1.1rem;
+  padding: 0.9rem;
   backdrop-filter: blur(8px);
 }
 .dashboard-action {
@@ -409,7 +425,7 @@ summary:focus-visible {
   .dashboard-spotlight {
     grid-template-columns: 1fr minmax(18rem, 0.85fr);
     align-items: end;
-    padding: 2rem;
+    padding: 1.5rem;
   }
 }
 @media (min-width: 1024px) {
@@ -428,7 +444,7 @@ summary:focus-visible {
     max-width: none;
     margin-left: 16.5rem;
     width: calc(100% - 16.5rem);
-    padding: 2.5rem clamp(2rem, 4vw, 4.5rem) 5rem;
+    padding: 1.75rem clamp(1.5rem, 3vw, 3rem) 3.5rem;
   }
   .admin-app-header .app-brand-row {
     min-height: auto;
@@ -619,8 +635,7 @@ summary:focus-visible {
   padding: 0.8rem;
 }
 .admin-config-card ul {
-  max-height: 24rem;
-  overflow-y: auto;
+  overflow: visible;
 }
 .admin-config-card li {
   min-height: 3rem;
@@ -734,7 +749,7 @@ summary:focus-visible {
 
 @media (min-width: 640px) {
   .page-container {
-    padding: 2rem 1.5rem 4rem;
+    padding: 1.5rem 1.5rem 3.5rem;
   }
 }
 @media (prefers-reduced-motion: reduce) {
