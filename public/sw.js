@@ -1,4 +1,4 @@
-const CACHE = "vector-shell-v2";
+const CACHE = "vector-shell-v3";
 const SHELL = ["/", "/login", "/offline", "/technician/orders", "/icon.svg"];
 self.addEventListener("install", (event) =>
   event.waitUntil(

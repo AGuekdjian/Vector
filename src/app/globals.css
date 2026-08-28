@@ -188,6 +188,65 @@ summary:focus-visible {
 .page-container textarea {
   line-height: 1.45;
 }
+.compact-form > .form-heading,
+.compact-form > .relative,
+.compact-form > fieldset,
+.compact-form > details,
+.compact-form > textarea,
+.compact-form > [role="alert"],
+.compact-form > [role="status"],
+.compact-form > button:last-child,
+.compact-form > div:has(> label),
+.compact-form > div[aria-live="polite"],
+.compact-form > p {
+  grid-column: 1 / -1;
+}
+.compact-form .form-heading {
+  margin-bottom: 0.25rem;
+  border-bottom: 1px solid #f4f4f5;
+  padding-bottom: 0.75rem;
+}
+.compact-form .form-heading h2 {
+  font-size: 1rem;
+  font-weight: 750;
+}
+.compact-form .form-heading > p:last-child {
+  margin-top: 0.2rem;
+  color: #71717a;
+  font-size: 0.75rem;
+}
+.compact-form input:not([type="checkbox"]):not([type="radio"]),
+.compact-form select,
+.compact-form button {
+  min-height: 2.25rem !important;
+}
+.compact-form textarea {
+  min-height: 4.25rem !important;
+}
+.compact-form fieldset {
+  padding: 0.75rem;
+}
+.compact-options {
+  border: 1px solid #e4e4e7;
+  border-radius: 0.7rem;
+  background: #fafafa;
+}
+.compact-options summary {
+  cursor: pointer;
+  padding: 0.65rem 0.75rem;
+  color: #52525b;
+  font-size: 0.78rem;
+  font-weight: 650;
+}
+.compact-options[open] summary {
+  border-bottom: 1px solid #e4e4e7;
+}
+.compact-options > div {
+  padding: 0.75rem;
+}
+.compact-form label {
+  font-size: 0.78rem;
+}
 
 .admin-app-header,
 .technician-header {

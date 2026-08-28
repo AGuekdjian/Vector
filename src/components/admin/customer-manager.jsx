@@ -88,12 +88,16 @@ export function CustomerManager() {
     },
   });
   return (
-    <div className="grid gap-6 lg:grid-cols-[360px_1fr]">
+    <div className="grid gap-4 xl:grid-cols-[minmax(460px,0.9fr)_minmax(0,1.4fr)]">
       <form
         onSubmit={handleSubmit((data) => create.mutate(data))}
-        className="surface-card space-y-3 p-5"
+        className="surface-card compact-form grid gap-2.5 p-4 sm:grid-cols-2"
       >
-        <h2 className="font-bold">Nuevo cliente</h2>
+        <div className="form-heading">
+          <p className="eyebrow">Alta rápida</p>
+          <h2>Nuevo cliente</h2>
+          <p>Los campos opcionales pueden completarse más adelante.</p>
+        </div>
         <select
           aria-label="Tipo"
           className="min-h-11 w-full rounded-lg border px-3"
@@ -189,34 +193,39 @@ export function CustomerManager() {
             {...register("subscriberNumber")}
           />
         )}
-        <div className="grid grid-cols-1 gap-2 sm:grid-cols-3">
-          {[
-            ["customerSince", "Cliente desde"],
-            ["contractStart", "Inicio de contrato"],
-            ["contractEnd", "Fin de contrato"],
-          ].map(([field, label]) => (
-            <label key={field} className="text-sm">
-              {label}
-              <input
-                type="date"
-                className="mt-1 min-h-11 w-full rounded-lg border px-2"
-                {...register(field)}
-              />
-            </label>
-          ))}
-        </div>
-        <input
-          aria-label="Forma de pago"
-          placeholder="Forma de pago"
-          className="min-h-11 w-full rounded-lg border px-3"
-          {...register("paymentMethod")}
-        />
-        <textarea
-          aria-label="Nota interna"
-          placeholder="Nota interna"
-          className="min-h-24 w-full rounded-lg border p-3"
-          {...register("internalNotes")}
-        />
+        <details className="compact-options">
+          <summary>Información contractual y notas</summary>
+          <div className="grid grid-cols-1 gap-2 sm:grid-cols-3">
+            {[
+              ["customerSince", "Cliente desde"],
+              ["contractStart", "Inicio de contrato"],
+              ["contractEnd", "Fin de contrato"],
+            ].map(([field, label]) => (
+              <label key={field} className="text-sm">
+                {label}
+                <input
+                  type="date"
+                  className="mt-1 min-h-11 w-full rounded-lg border px-2"
+                  {...register(field)}
+                />
+              </label>
+            ))}
+          </div>
+          <div className="mt-2 grid gap-2 sm:grid-cols-2">
+            <input
+              aria-label="Forma de pago"
+              placeholder="Forma de pago"
+              className="min-h-11 w-full rounded-lg border px-3"
+              {...register("paymentMethod")}
+            />
+            <textarea
+              aria-label="Nota interna"
+              placeholder="Nota interna"
+              className="min-h-24 w-full rounded-lg border p-3"
+              {...register("internalNotes")}
+            />
+          </div>
+        </details>
         {Object.keys(errors).length > 0 && (
           <p role="alert" className="text-sm text-red-700">
             Revisa los campos obligatorios.

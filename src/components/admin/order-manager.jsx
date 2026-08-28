@@ -192,13 +192,17 @@ export function OrderManager() {
     },
   });
   return (
-    <div className="grid gap-6 xl:grid-cols-[420px_1fr]">
+    <div className="grid gap-4 xl:grid-cols-[minmax(500px,0.95fr)_minmax(0,1.35fr)]">
       <form
-        className="surface-card space-y-3 p-5"
+        className="surface-card compact-form grid gap-2.5 p-4 sm:grid-cols-2"
         onSubmit={orderForm.handleSubmit((data) => create.mutate(data))}
         noValidate
       >
-        <h2 className="font-bold">Nueva orden</h2>
+        <div className="form-heading">
+          <p className="eyebrow">Carga operativa</p>
+          <h2>Nueva orden</h2>
+          <p>Cliente, visita y asignación en una vista compacta.</p>
+        </div>
         <input
           required
           aria-label="Número OS"
@@ -481,33 +485,38 @@ export function OrderManager() {
           className="min-h-24 w-full rounded-lg border p-3"
           {...orderForm.register("workDescription")}
         />
-        <select
-          aria-label="Orden original"
-          className="min-h-11 w-full rounded-lg border px-3"
-          {...orderForm.register("parentServiceOrderId", {
-            setValueAs: (value) => value || null,
-          })}
-        >
-          <option value="">Sin orden relacionada</option>
-          {relatedOrders.data?.items.map((item) => (
-            <option key={item._id} value={item._id}>
-              OS {item.externalOrderNumber} ·{" "}
-              {new Date(item.scheduledDate).toLocaleDateString("es-UY")}
-            </option>
-          ))}
-        </select>
-        <textarea
-          aria-label="Nota técnico"
-          placeholder="Nota visible al técnico"
-          className="min-h-20 w-full rounded-lg border p-3"
-          {...orderForm.register("technicianNote")}
-        />
-        <textarea
-          aria-label="Nota interna"
-          placeholder="Nota interna (sólo propietario y administrador)"
-          className="min-h-20 w-full rounded-lg border p-3"
-          {...orderForm.register("internalNote")}
-        />
+        <details className="compact-options">
+          <summary>Relacionar orden y agregar notas</summary>
+          <div className="grid gap-2 sm:grid-cols-2">
+            <select
+              aria-label="Orden original"
+              className="min-h-11 w-full rounded-lg border px-3"
+              {...orderForm.register("parentServiceOrderId", {
+                setValueAs: (value) => value || null,
+              })}
+            >
+              <option value="">Sin orden relacionada</option>
+              {relatedOrders.data?.items.map((item) => (
+                <option key={item._id} value={item._id}>
+                  OS {item.externalOrderNumber} ·{" "}
+                  {new Date(item.scheduledDate).toLocaleDateString("es-UY")}
+                </option>
+              ))}
+            </select>
+            <textarea
+              aria-label="Nota técnico"
+              placeholder="Nota visible al técnico"
+              className="min-h-20 w-full rounded-lg border p-3"
+              {...orderForm.register("technicianNote")}
+            />
+            <textarea
+              aria-label="Nota interna"
+              placeholder="Nota interna (sólo propietario y administrador)"
+              className="min-h-20 w-full rounded-lg border p-3"
+              {...orderForm.register("internalNote")}
+            />
+          </div>
+        </details>
         {Object.keys(orderForm.formState.errors).length > 0 && (
           <div
             role="alert"
