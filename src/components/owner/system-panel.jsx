@@ -1,6 +1,7 @@
 "use client";
 
 import { useQuery } from "@tanstack/react-query";
+import { useState } from "react";
 import Link from "next/link";
 import { CardSkeleton, ListSkeleton } from "@/components/ui/skeleton";
 
@@ -18,6 +19,7 @@ const duration = (seconds) => {
 };
 
 export function SystemPanel() {
+  const [view, setView] = useState("failures");
   const status = useQuery({
     queryKey: ["owner-system-status"],
     queryFn: () => get("/api/owner/system-status"),
@@ -96,8 +98,30 @@ export function SystemPanel() {
         </div>
       </section>
 
-      <div className="grid gap-6 xl:grid-cols-2">
-        <section>
+      <div
+        className="view-tabs"
+        role="tablist"
+        aria-label="Detalle del sistema"
+      >
+        <button
+          type="button"
+          role="tab"
+          aria-selected={view === "failures"}
+          onClick={() => setView("failures")}
+        >
+          Fallas recientes
+        </button>
+        <button
+          type="button"
+          role="tab"
+          aria-selected={view === "activity"}
+          onClick={() => setView("activity")}
+        >
+          Actividad reciente
+        </button>
+      </div>
+      <div>
+        <section hidden={view !== "failures"}>
           <div className="section-heading">
             <div>
               <p className="eyebrow">Diagnóstico</p>
@@ -131,7 +155,7 @@ export function SystemPanel() {
           )}
         </section>
 
-        <section>
+        <section hidden={view !== "activity"}>
           <div className="section-heading">
             <div>
               <p className="eyebrow">Trazabilidad</p>

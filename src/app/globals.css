@@ -627,7 +627,8 @@ summary:focus-visible {
 .administration-index > strong {
   display: none;
 }
-.administration-index a {
+.administration-index a,
+.administration-index button {
   display: flex;
   flex-shrink: 0;
   align-items: center;
@@ -639,11 +640,14 @@ summary:focus-visible {
   font-size: 0.85rem;
   font-weight: 650;
 }
-.administration-index a:hover {
+.administration-index a:hover,
+.administration-index button:hover,
+.administration-index button[aria-pressed="true"] {
   background: #fef2f2;
   color: #991b1b;
 }
-.administration-index a span {
+.administration-index a span,
+.administration-index button span {
   display: grid;
   min-width: 1.5rem;
   height: 1.5rem;
@@ -656,6 +660,13 @@ summary:focus-visible {
 .administration-grid {
   display: grid;
   gap: 1.25rem;
+}
+.administration-grid > [hidden] {
+  display: none;
+}
+.administration-grid > section {
+  width: 100%;
+  max-width: 52rem;
 }
 .admin-config-card {
   scroll-margin-top: 6rem;
@@ -697,11 +708,32 @@ summary:focus-visible {
   overflow: visible;
 }
 .admin-config-card li {
-  min-height: 3rem;
+  min-height: 2.5rem;
+}
+.view-tabs {
+  display: inline-flex;
+  gap: 0.25rem;
+  margin-bottom: 1rem;
+  border: 1px solid #e4e4e7;
+  border-radius: 0.75rem;
+  background: white;
+  padding: 0.25rem;
+}
+.view-tabs button {
+  min-height: 2.25rem;
+  border-radius: 0.55rem;
+  padding: 0.45rem 0.85rem;
+  color: #71717a;
+  font-size: 0.8rem;
+  font-weight: 650;
+}
+.view-tabs button[aria-selected="true"] {
+  background: #18181b;
+  color: white;
 }
 @media (min-width: 768px) {
   .administration-grid {
-    grid-template-columns: repeat(2, minmax(0, 1fr));
+    grid-template-columns: minmax(0, 1fr);
   }
 }
 @media (min-width: 1280px) {

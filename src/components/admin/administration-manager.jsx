@@ -2,6 +2,7 @@
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 import { zodResolver } from "@hookform/resolvers/zod";
 import { useForm, useWatch } from "react-hook-form";
+import { useState } from "react";
 import { z } from "zod";
 import { createUserSchema } from "@/modules/auth/auth.schemas";
 import { CardSkeleton } from "@/components/ui/skeleton";
@@ -38,6 +39,7 @@ const patch = async (url, data) => {
 };
 export function AdministrationManager() {
   const qc = useQueryClient();
+  const [section, setSection] = useState("employees");
   const employeeForm = useForm({
     resolver: zodResolver(employeeSchema),
     defaultValues: { firstName: "", lastName: "" },
@@ -129,21 +131,41 @@ export function AdministrationManager() {
       >
         <p className="eyebrow">Configuración</p>
         <strong>Recursos operativos</strong>
-        <a href="#employees">
+        <button
+          type="button"
+          aria-pressed={section === "employees"}
+          onClick={() => setSection("employees")}
+        >
           Empleados <span>{employees.data?.items.length || 0}</span>
-        </a>
-        <a href="#users">
+        </button>
+        <button
+          type="button"
+          aria-pressed={section === "users"}
+          onClick={() => setSection("users")}
+        >
           Usuarios <span>{users.data?.items.length || 0}</span>
-        </a>
-        <a href="#vehicles">
+        </button>
+        <button
+          type="button"
+          aria-pressed={section === "vehicles"}
+          onClick={() => setSection("vehicles")}
+        >
           Vehículos <span>{vehicles.data?.items.length || 0}</span>
-        </a>
-        <a href="#reasons">
+        </button>
+        <button
+          type="button"
+          aria-pressed={section === "reasons"}
+          onClick={() => setSection("reasons")}
+        >
           Motivos <span>{reasons.data?.items.length || 0}</span>
-        </a>
+        </button>
       </nav>
       <div className="administration-grid">
-        <section id="employees" className="surface-card admin-config-card p-5">
+        <section
+          hidden={section !== "employees"}
+          id="employees"
+          className="surface-card admin-config-card p-4"
+        >
           <div className="config-card-heading">
             <div>
               <p className="eyebrow">Equipo</p>
@@ -198,7 +220,11 @@ export function AdministrationManager() {
             ))}
           </ul>
         </section>
-        <section id="users" className="surface-card admin-config-card p-5">
+        <section
+          hidden={section !== "users"}
+          id="users"
+          className="surface-card admin-config-card p-4"
+        >
           <div className="config-card-heading">
             <div>
               <p className="eyebrow">Accesos</p>
@@ -294,7 +320,11 @@ export function AdministrationManager() {
             ))}
           </ul>
         </section>
-        <section id="vehicles" className="surface-card admin-config-card p-5">
+        <section
+          hidden={section !== "vehicles"}
+          id="vehicles"
+          className="surface-card admin-config-card p-4"
+        >
           <div className="config-card-heading">
             <div>
               <p className="eyebrow">Movilidad</p>
@@ -344,7 +374,8 @@ export function AdministrationManager() {
         </section>
         <section
           id="reasons"
-          className="surface-card admin-config-card p-5 xl:col-span-2"
+          hidden={section !== "reasons"}
+          className="surface-card admin-config-card p-4"
         >
           <div className="config-card-heading">
             <div>
