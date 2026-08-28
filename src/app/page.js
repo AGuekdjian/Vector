@@ -2,23 +2,48 @@ import Link from "next/link";
 
 export default function Home() {
   return (
-    <main className="flex flex-1 items-center justify-center px-5 py-12">
-      <section className="w-full max-w-md rounded-2xl border border-zinc-200 bg-white p-7 shadow-sm">
-        <span className="inline-flex rounded-md bg-red-800 px-2.5 py-1 text-sm font-bold tracking-wide text-white">
-          VECTOR
-        </span>
-        <h1 className="mt-6 text-3xl font-bold tracking-tight text-zinc-950">
-          Órdenes de servicio
-        </h1>
-        <p className="mt-3 text-base leading-7 text-zinc-600">
-          Gestión operativa segura para administración y técnicos.
-        </p>
-        <Link
-          className="mt-8 inline-flex min-h-12 w-full items-center justify-center rounded-lg bg-red-800 px-5 font-semibold text-white transition hover:bg-red-900 focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-red-800"
-          href="/login"
-        >
-          Ingresar
-        </Link>
+    <main className="public-shell">
+      <section className="public-story">
+        <div className="public-story-content">
+          <div className="public-logo">
+            <span className="app-brand-mark">V</span> Vector
+          </div>
+          <div className="public-copy">
+            <p className="eyebrow !text-red-300">Gestión de servicios</p>
+            <h1>Más claridad para cada visita técnica.</h1>
+            <p>
+              Planificá, asigná y seguí el trabajo de tu equipo con toda la
+              información importante siempre disponible.
+            </p>
+          </div>
+          <p className="text-sm text-zinc-500">
+            Diseñado para operar. Preparado para crecer.
+          </p>
+        </div>
+      </section>
+      <section className="public-form-side">
+        <div className="public-card">
+          <div className="public-mobile-logo public-logo">
+            <span className="app-brand-mark">V</span> Vector
+          </div>
+          <p className="eyebrow">Plataforma operativa</p>
+          <h2 className="text-3xl font-bold tracking-tight text-zinc-950">
+            Órdenes de servicio
+          </h2>
+          <p className="mt-3 leading-7 text-zinc-600">
+            Administración y técnicos trabajando con una única fuente de
+            información.
+          </p>
+          <Link
+            className="mt-8 inline-flex min-h-12 w-full items-center justify-center rounded-xl bg-red-800 px-5 font-semibold text-white shadow-lg shadow-red-900/15 hover:bg-red-900"
+            href="/login"
+          >
+            Ingresar{" "}
+            <span className="ml-2" aria-hidden="true">
+              →
+            </span>
+          </Link>
+        </div>
       </section>
     </main>
   );

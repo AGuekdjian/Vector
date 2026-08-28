@@ -5,6 +5,38 @@ import { usePathname } from "next/navigation";
 import { useQuery } from "@tanstack/react-query";
 import { OfflineIndicator } from "@/components/ui/offline-indicator";
 import { LogoutButton } from "@/components/auth/logout-button";
+
+const icons = {
+  dashboard: "M4 13h6V4H4v9Zm0 7h6v-4H4v4Zm10 0h6v-9h-6v9Zm0-16v4h6V4h-6Z",
+  customers:
+    "M16 21v-2a4 4 0 0 0-4-4H6a4 4 0 0 0-4 4v2m7-10a4 4 0 1 0 0-8 4 4 0 0 0 0 8Zm13 10v-2a4 4 0 0 0-3-3.87m0-12.26a4 4 0 0 1 0 7.75",
+  orders:
+    "M9 11l3 3L22 4M21 12v7a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h11",
+  administration:
+    "M12 15.5A3.5 3.5 0 1 0 12 8a3.5 3.5 0 0 0 0 7.5Zm7.4-3.5a7.8 7.8 0 0 0-.1-1l2-1.5-2-3.4-2.4 1a8 8 0 0 0-1.8-1L14.8 3h-4l-.4 3a8 8 0 0 0-1.8 1L6.2 6 4.2 9.5l2 1.5a7.8 7.8 0 0 0 0 2l-2 1.5 2 3.4 2.4-1a8 8 0 0 0 1.8 1l.4 3h4l.4-3a8 8 0 0 0 1.8-1l2.4 1 2-3.4-2-1.5a7.8 7.8 0 0 0 .1-1Z",
+  audit:
+    "M9 3H5a2 2 0 0 0-2 2v14a2 2 0 0 0 2 2h14a2 2 0 0 0 2-2V9m-8-6h8v8m0-8L10 14",
+  system: "M4 5h16v11H4V5Zm5 15h6m-3-4v4",
+  profile: "M20 21a8 8 0 0 0-16 0m8-10a4 4 0 1 0 0-8 4 4 0 0 0 0 8Z",
+};
+
+function NavIcon({ name }) {
+  return (
+    <svg
+      aria-hidden="true"
+      viewBox="0 0 24 24"
+      fill="none"
+      stroke="currentColor"
+      strokeWidth="1.8"
+      strokeLinecap="round"
+      strokeLinejoin="round"
+      className="size-5 shrink-0"
+    >
+      <path d={icons[name]} />
+    </svg>
+  );
+}
+
 export function AppHeader({ technician = false }) {
   const pathname = usePathname();
   const { data } = useQuery({
@@ -18,62 +50,72 @@ export function AppHeader({ technician = false }) {
   });
   const links = technician
     ? [
-        ["/technician/orders", "Mis órdenes"],
-        ["/technician/profile", "Perfil"],
+        ["/technician/orders", "Mis órdenes", "orders"],
+        ["/technician/profile", "Perfil", "profile"],
       ]
     : [
-        ["/dashboard", "Resumen"],
-        ["/customers", "Clientes"],
-        ["/orders", "Órdenes"],
-        ["/administration", "Administrar"],
+        ["/dashboard", "Resumen", "dashboard"],
+        ["/customers", "Clientes", "customers"],
+        ["/orders", "Órdenes", "orders"],
+        ["/administration", "Administrar", "administration"],
         ...(data?.user.role === "OWNER"
           ? [
-              ["/audit", "Auditoría"],
-              ["/owner/system", "Sistema"],
+              ["/audit", "Auditoría", "audit"],
+              ["/owner/system", "Sistema", "system"],
             ]
           : []),
       ];
+  const home = technician ? "/technician/orders" : "/dashboard";
+
   return (
-    <header className="sticky top-0 z-40 border-b border-zinc-200/80 bg-white/95 backdrop-blur">
-      <div className="mx-auto flex min-h-16 max-w-7xl flex-wrap items-center gap-x-5 px-4">
-        <Link
-          className="flex items-center gap-2 py-3 font-bold tracking-tight text-zinc-950"
-          href={technician ? "/technician/orders" : "/dashboard"}
-        >
-          <span className="grid size-8 place-items-center rounded-lg bg-red-800 text-sm text-white shadow-sm">
-            V
+    <header className={technician ? "technician-header" : "admin-app-header"}>
+      <div className="app-brand-row">
+        <Link className="app-brand" href={home} aria-label="Vector, inicio">
+          <span className="app-brand-mark">V</span>
+          <span>
+            <strong>Vector</strong>
+            <small>Gestión de servicios</small>
           </span>
-          <span>Vector</span>
         </Link>
-        <nav className="order-3 flex w-full gap-1 overflow-x-auto border-t border-zinc-100 py-2 text-sm sm:order-none sm:w-auto sm:flex-1 sm:border-0 sm:py-0">
-          {links.map(([href, label]) => (
-            <Link
-              key={href}
-              href={href}
-              className={`shrink-0 rounded-lg px-3 py-2 font-medium ${
-                pathname.startsWith(href)
-                  ? "bg-red-50 text-red-900"
-                  : "text-zinc-600 hover:bg-zinc-100 hover:text-zinc-950"
-              }`}
-            >
-              {label}
-            </Link>
-          ))}
-        </nav>
-        <div className="ml-auto flex items-center gap-2 py-2">
+        <div className="header-mobile-actions">
           <OfflineIndicator
             href={technician ? "/technician/sync" : undefined}
           />
-          {data?.user && (
-            <div className="border-l border-zinc-200 pl-3 text-right">
-              <p className="max-w-28 truncate text-xs font-semibold text-zinc-800 sm:max-w-40">
-                {data.user.name}
-              </p>
-              <p className="hidden text-[11px] text-zinc-500 sm:block">
-                {data.user.role}
-              </p>
-            </div>
-          )}
+          <LogoutButton />
+        </div>
+      </div>
+      <nav className="app-navigation" aria-label="Navegación principal">
+        {links.map(([href, label, icon]) => {
+          const active = pathname === href || pathname.startsWith(`${href}/`);
+          return (
+            <Link
+              key={href}
+              href={href}
+              aria-current={active ? "page" : undefined}
+              className={active ? "nav-link nav-link-active" : "nav-link"}
+            >
+              <NavIcon name={icon} />
+              <span>{label}</span>
+            </Link>
+          );
+        })}
+      </nav>
+      <div className="app-account">
+        <div className="account-avatar" aria-hidden="true">
+          {data?.user?.name?.charAt(0)?.toUpperCase() || "V"}
+        </div>
+        <div className="min-w-0 flex-1">
+          <p className="truncate text-sm font-semibold">
+            {data?.user?.name || "Cargando…"}
+          </p>
+          <p className="text-xs text-zinc-400">
+            {data?.user?.role || "Sesión activa"}
+          </p>
+        </div>
+        <div className="account-actions">
+          <OfflineIndicator
+            href={technician ? "/technician/sync" : undefined}
+          />
           <LogoutButton />
         </div>
       </div>

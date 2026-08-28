@@ -1,37 +1,113 @@
 "use client";
+
+import Link from "next/link";
 import { useQuery } from "@tanstack/react-query";
 import { CardSkeleton } from "@/components/ui/skeleton";
+
 export function Dashboard() {
-  const { data, isLoading } = useQuery({
+  const { data, isLoading, isError } = useQuery({
     queryKey: ["statistics"],
     queryFn: async () => {
-      const r = await fetch("/api/statistics");
-      if (!r.ok) throw new Error();
-      return r.json();
+      const response = await fetch("/api/statistics");
+      if (!response.ok) throw new Error();
+      return response.json();
     },
   });
-  const cards = data
-    ? [
-        { label: "Órdenes hoy", value: data.today },
-        { label: "Este mes", value: data.thisMonth },
-        { label: "Mes anterior", value: data.previousMonth },
-        { label: "Realizadas", value: data.byStatus.COMPLETED || 0 },
-        { label: "Cotización", value: data.byStatus.REQUIRES_QUOTE || 0 },
-        { label: "No realizadas", value: data.byStatus.NOT_COMPLETED || 0 },
-      ]
-    : [];
-  return (
-    <div className="grid gap-3 sm:grid-cols-2 lg:grid-cols-3">
-      {isLoading ? (
+  if (isLoading)
+    return (
+      <div className="grid gap-4 sm:grid-cols-2 xl:grid-cols-3">
         <CardSkeleton count={6} />
-      ) : (
-        cards.map((c) => (
-          <article key={c.label} className="metric-card">
-            <p className="text-sm text-zinc-600">{c.label}</p>
-            <p className="mt-2 text-3xl font-bold">{c.value}</p>
+      </div>
+    );
+  if (isError)
+    return (
+      <div className="alert-error">
+        No fue posible cargar el resumen operativo.
+      </div>
+    );
+
+  const completed = data.byStatus.COMPLETED || 0;
+  const quoted = data.byStatus.REQUIRES_QUOTE || 0;
+  const notCompleted = data.byStatus.NOT_COMPLETED || 0;
+  const resolvedTotal = completed + quoted + notCompleted;
+  const completionRate = resolvedTotal
+    ? Math.round((completed / resolvedTotal) * 100)
+    : 0;
+  const cards = [
+    {
+      label: "Este mes",
+      value: data.thisMonth,
+      note: "órdenes registradas",
+      tone: "neutral",
+    },
+    {
+      label: "Mes anterior",
+      value: data.previousMonth,
+      note: "para comparar actividad",
+      tone: "neutral",
+    },
+    {
+      label: "Realizadas",
+      value: completed,
+      note: "trabajos completados",
+      tone: "success",
+    },
+    {
+      label: "Requieren cotización",
+      value: quoted,
+      note: "pendientes de definición",
+      tone: "warning",
+    },
+    {
+      label: "No realizadas",
+      value: notCompleted,
+      note: "requieren seguimiento",
+      tone: "danger",
+    },
+  ];
+  return (
+    <div className="space-y-5">
+      <section className="dashboard-spotlight">
+        <div>
+          <p className="dashboard-kicker">Actividad de hoy</p>
+          <p className="dashboard-big-number">{data.today}</p>
+          <p className="text-sm text-white/65">órdenes programadas o creadas</p>
+        </div>
+        <div className="dashboard-progress-panel">
+          <div className="flex items-end justify-between gap-4">
+            <div>
+              <p className="text-sm text-white/65">Resolución general</p>
+              <p className="mt-1 text-3xl font-bold">{completionRate}%</p>
+            </div>
+            <Link href="/orders" className="dashboard-action">
+              Ver órdenes <span aria-hidden="true">→</span>
+            </Link>
+          </div>
+          <div
+            className="dashboard-progress"
+            role="progressbar"
+            aria-label={`${completionRate}% de órdenes realizadas`}
+            aria-valuemin="0"
+            aria-valuemax="100"
+            aria-valuenow={completionRate}
+          >
+            <span style={{ width: `${completionRate}%` }} />
+          </div>
+        </div>
+      </section>
+      <div className="grid gap-4 sm:grid-cols-2 xl:grid-cols-3">
+        {cards.map((card) => (
+          <article
+            key={card.label}
+            className={`metric-card metric-${card.tone}`}
+          >
+            <span className="metric-indicator" aria-hidden="true" />
+            <p className="text-sm font-medium text-zinc-600">{card.label}</p>
+            <strong>{card.value}</strong>
+            <small>{card.note}</small>
           </article>
-        ))
-      )}
+        ))}
+      </div>
     </div>
   );
 }
