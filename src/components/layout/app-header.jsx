@@ -59,10 +59,7 @@ export function AppHeader({ technician = false }) {
         ["/orders", "Órdenes", "orders"],
         ["/administration", "Administrar", "administration"],
         ...(data?.user.role === "OWNER"
-          ? [
-              ["/audit", "Auditoría", "audit"],
-              ["/owner/system", "Sistema", "system"],
-            ]
+          ? [["/owner/system", "Sistema", "system"]]
           : []),
       ];
   const home = technician ? "/technician/orders" : "/dashboard";
@@ -109,7 +106,13 @@ export function AppHeader({ technician = false }) {
             {data?.user?.name || "Cargando…"}
           </p>
           <p className="text-xs text-zinc-400">
-            {data?.user?.role || "Sesión activa"}
+            {data?.user?.role === "OWNER"
+              ? "Propietario"
+              : data?.user?.role === "ADMIN"
+                ? "Administrador"
+                : data?.user?.role === "TECHNICIAN"
+                  ? "Técnico"
+                  : "Sesión activa"}
           </p>
         </div>
         <div className="account-actions">

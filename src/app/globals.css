@@ -533,6 +533,199 @@ summary:focus-visible {
   color: #71717a;
   text-align: center;
 }
+.administration-shell {
+  display: grid;
+  gap: 1.25rem;
+  align-items: start;
+}
+.administration-index {
+  display: flex;
+  gap: 0.35rem;
+  overflow-x: auto;
+  border: 1px solid var(--border);
+  border-radius: 1rem;
+  background: white;
+  padding: 0.75rem;
+  box-shadow: 0 8px 24px rgb(24 24 27 / 0.035);
+}
+.administration-index > p,
+.administration-index > strong {
+  display: none;
+}
+.administration-index a {
+  display: flex;
+  flex-shrink: 0;
+  align-items: center;
+  justify-content: space-between;
+  gap: 1rem;
+  border-radius: 0.7rem;
+  padding: 0.65rem 0.8rem;
+  color: #52525b;
+  font-size: 0.85rem;
+  font-weight: 650;
+}
+.administration-index a:hover {
+  background: #fef2f2;
+  color: #991b1b;
+}
+.administration-index a span {
+  display: grid;
+  min-width: 1.5rem;
+  height: 1.5rem;
+  place-items: center;
+  border-radius: 999px;
+  background: #f4f4f5;
+  color: #71717a;
+  font-size: 0.68rem;
+}
+.administration-grid {
+  display: grid;
+  gap: 1.25rem;
+}
+.admin-config-card {
+  scroll-margin-top: 6rem;
+}
+.config-card-heading {
+  display: flex;
+  align-items: flex-start;
+  justify-content: space-between;
+  gap: 1rem;
+  border-bottom: 1px solid #f4f4f5;
+  padding-bottom: 1rem;
+}
+.config-card-heading .eyebrow {
+  margin-bottom: 0.2rem;
+}
+.config-card-heading h2 {
+  font-size: 1.15rem;
+  font-weight: 750;
+  letter-spacing: -0.025em;
+}
+.config-card-heading > span {
+  color: #e4e4e7;
+  font-size: 1.6rem;
+  font-weight: 780;
+  letter-spacing: -0.06em;
+}
+.config-description {
+  margin-top: 1rem;
+  color: #71717a;
+  font-size: 0.82rem;
+  line-height: 1.5;
+}
+.admin-config-card form {
+  border-radius: 0.8rem;
+  background: #fafafa;
+  padding: 0.8rem;
+}
+.admin-config-card ul {
+  max-height: 24rem;
+  overflow-y: auto;
+}
+.admin-config-card li {
+  min-height: 3rem;
+}
+@media (min-width: 768px) {
+  .administration-grid {
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+  }
+}
+@media (min-width: 1280px) {
+  .administration-shell {
+    grid-template-columns: 13.5rem minmax(0, 1fr);
+    gap: 1.5rem;
+  }
+  .administration-index {
+    position: sticky;
+    top: 2rem;
+    flex-direction: column;
+    overflow: visible;
+    padding: 1rem;
+  }
+  .administration-index > p,
+  .administration-index > strong {
+    display: block;
+    padding-inline: 0.65rem;
+  }
+  .administration-index > strong {
+    margin-bottom: 0.8rem;
+    font-size: 0.95rem;
+  }
+}
+.back-link {
+  display: inline-flex;
+  min-height: 2.5rem;
+  align-items: center;
+  gap: 0.55rem;
+  border-radius: 0.7rem;
+  padding: 0.45rem 0.7rem;
+  color: #52525b;
+  font-size: 0.875rem;
+  font-weight: 650;
+}
+.back-link:hover {
+  background: white;
+  color: #991b1b;
+  box-shadow: 0 1px 3px rgb(24 24 27 / 0.08);
+}
+.app-toast {
+  position: fixed;
+  right: 1rem;
+  bottom: 1rem;
+  z-index: 80;
+  display: flex;
+  width: min(25rem, calc(100vw - 2rem));
+  align-items: center;
+  gap: 0.75rem;
+  border: 1px solid;
+  border-radius: 1rem;
+  background: white;
+  padding: 0.9rem 1rem;
+  box-shadow: 0 20px 50px rgb(24 24 27 / 0.2);
+  animation: toast-in 180ms ease-out;
+}
+.app-toast p {
+  flex: 1;
+  font-size: 0.875rem;
+  font-weight: 600;
+}
+.app-toast button {
+  padding: 0.25rem;
+  color: #71717a;
+  font-size: 1.25rem;
+  line-height: 1;
+}
+.toast-symbol {
+  display: grid;
+  width: 1.7rem;
+  height: 1.7rem;
+  flex-shrink: 0;
+  place-items: center;
+  border-radius: 999px;
+  color: white;
+  font-size: 0.75rem;
+  font-weight: 800;
+}
+.toast-success {
+  border-color: #bbf7d0;
+  color: #166534;
+}
+.toast-success .toast-symbol {
+  background: #15803d;
+}
+.toast-error {
+  border-color: #fecaca;
+  color: #991b1b;
+}
+.toast-error .toast-symbol {
+  background: #b91c1c;
+}
+@keyframes toast-in {
+  from {
+    opacity: 0;
+    transform: translateY(0.75rem);
+  }
+}
 .alert-error {
   border-color: #fecaca;
   background: #fef2f2;

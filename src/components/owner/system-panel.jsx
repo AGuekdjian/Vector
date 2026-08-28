@@ -138,7 +138,7 @@ export function SystemPanel() {
               <h2>Actividad reciente</h2>
             </div>
             <Link href="/audit" className="text-link">
-              Ver auditoría completa
+              Actividad completa
             </Link>
           </div>
           {audit.isLoading ? (
